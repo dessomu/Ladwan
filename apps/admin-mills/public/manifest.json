@@ -1,0 +1,17 @@
+{
+  "name": "लाडवां चक्की एडमिन - Ladwan Chakki Owner Portal",
+  "short_name": "लाडवां चक्की",
+  "description": "Daily Rate Board, Duty Status & Order Management for Local Flour Mills",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1917",
+  "theme_color": "#D97706",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
