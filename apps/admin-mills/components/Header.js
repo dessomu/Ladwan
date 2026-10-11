@@ -5,15 +5,14 @@ import {
   Store,
   Power,
   Volume2,
-  VolumeX,
   Bell,
   Sparkles,
   MapPin,
   Clock,
   ShieldCheck,
   ChevronDown,
-  AlertTriangle,
   RotateCcw,
+  Languages,
 } from "lucide-react";
 
 export default function Header({
@@ -25,17 +24,20 @@ export default function Header({
   onOpenProfile,
   onResetData,
   isFirebase,
+  lang,
+  toggleLang,
+  t,
 }) {
   const [showReasonDropdown, setShowReasonDropdown] = useState(false);
   const [isChimeTesting, setIsChimeTesting] = useState(false);
 
   const quickReasons = [
-    { label: "चक्की चालू है • ताजा पिसाई जारी", open: true, icon: "⚡" },
-    { label: "बिजली कट (Power Cut) - 1 घंटा", open: false, icon: "🔌" },
-    { label: "अनाज स्टॉक खत्म (Wheat Out of Stock)", open: false, icon: "🌾" },
-    { label: "मशीन सर्विस / मेंटनेंस जारी", open: false, icon: "⚙️" },
-    { label: "लंच ब्रेक (दुकान 2 बजे खुलेगी)", open: false, icon: "🍱" },
-    { label: "आज का दिन समाप्त (Closed for the day)", open: false, icon: "🌙" },
+    { label: t.statusRunning, open: true, icon: "⚡" },
+    { label: t.statusPowerCut, open: false, icon: "🔌" },
+    { label: t.statusStockOut, open: false, icon: "🌾" },
+    { label: t.statusMaintenance, open: false, icon: "⚙️" },
+    { label: t.statusLunchBreak, open: false, icon: "🍱" },
+    { label: t.statusDayEnd, open: false, icon: "🌙" },
   ];
 
   const handleTestChime = () => {
@@ -44,42 +46,55 @@ export default function Header({
     setTimeout(() => setIsChimeTesting(false), 800);
   };
 
+  const displayName = lang === "en" && mill.englishName ? mill.englishName : mill.name;
+
   return (
     <header className="sticky top-0 z-30 bg-stone-900/95 backdrop-blur-md border-b border-stone-800 shadow-xl transition-all">
-      {/* Top Status Bar: Connection & Location Badge */}
+      {/* Top Status Bar: Connection, Location & Language Switch */}
       <div className="bg-stone-950 px-3 py-1.5 flex items-center justify-between text-xs border-b border-stone-800/60">
         <div className="flex items-center gap-2 text-stone-400">
           <span className="flex items-center gap-1 font-medium text-amber-400">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-            लाडवां आटा चक्की नेटवर्क
+            {t.networkTitle}
           </span>
           <span className="text-stone-600 hidden sm:inline">•</span>
           <span className="hidden sm:inline-flex items-center gap-1 text-stone-400">
             <MapPin className="w-3 h-3 text-stone-500" />
-            {mill.area || "सेक्टर 14, गुरुग्राम"}
+            {mill.area || "Sector 14, Gurugram"}
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Quick Language Toggle */}
+          <button
+            type="button"
+            onClick={toggleLang}
+            title={lang === "hi" ? "Switch to English" : "हिंदी में बदलें"}
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-stone-800 hover:bg-stone-700 text-amber-300 font-semibold text-[11px] border border-amber-500/30 transition-all active:scale-95 shadow-sm"
+          >
+            <Languages className="w-3 h-3 text-amber-400" />
+            <span>{lang === "hi" ? "English" : "हिंदी"}</span>
+          </button>
+
           {isFirebase ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Live Firebase
+              {t.liveFirebase}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-mono text-[10px] border border-amber-500/20">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-mono text-[10px] border border-amber-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-              Demo Store Active
+              {t.demoStoreActive}
             </span>
           )}
 
           <button
             onClick={onResetData}
-            title="रीसेट टेस्ट डेटा / Reset Demo Data"
+            title={t.resetData}
             className="text-stone-400 hover:text-stone-200 transition-colors flex items-center gap-1 text-[11px]"
           >
             <RotateCcw className="w-3 h-3" />
-            <span className="hidden md:inline">रीसेट डेटा</span>
+            <span className="hidden md:inline">{t.resetData}</span>
           </button>
         </div>
       </div>
@@ -96,8 +111,8 @@ export default function Header({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-                  {mill.name}
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 fill-emerald-400/20" title="लाडवां सत्यापित चक्की" />
+                  {displayName}
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 fill-emerald-400/20" title={t.verifiedChakki} />
                 </h1>
               </div>
               <p className="text-xs text-amber-200/80 font-medium line-clamp-1">
@@ -113,7 +128,7 @@ export default function Header({
               <button
                 type="button"
                 onClick={handleTestChime}
-                title="आर्डर बेल टेस्ट करें (Test Sound Chime)"
+                title={t.testChime}
                 className={`p-2 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95 ${
                   isChimeTesting
                     ? "bg-amber-500/20 text-amber-300 border-amber-500 ring-2 ring-amber-500/30"
@@ -121,17 +136,17 @@ export default function Header({
                 }`}
               >
                 <Volume2 className={`w-4 h-4 ${isChimeTesting ? "animate-bounce text-amber-400" : ""}`} />
-                <span className="hidden md:inline">घंटी टेस्ट</span>
+                <span className="hidden md:inline">{t.testChime}</span>
               </button>
 
               <button
                 type="button"
                 onClick={onSimulateOrder}
-                title="नया लाइव आर्डर टेस्ट करें (Simulate Customer Order)"
+                title={t.simulateOrder}
                 className="px-2.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-semibold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow-md shadow-amber-600/20"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>+ आर्डर टेस्ट</span>
+                <span>{t.simulateOrder}</span>
               </button>
             </div>
 
@@ -154,7 +169,7 @@ export default function Header({
                         : "bg-stone-300 shadow-[0_0_8px_rgba(255,255,255,0.6)]"
                     }`}
                   ></span>
-                  <span>{mill.isOpen ? "🟢 दुकान चालू" : "🔴 दुकान बंद"}</span>
+                  <span>{mill.isOpen ? t.dukanOpen : t.dukanClosed}</span>
                 </span>
 
                 <span
@@ -163,7 +178,7 @@ export default function Header({
                     setShowReasonDropdown(!showReasonDropdown);
                   }}
                   className="pl-2 border-l border-white/20 hover:text-stone-200 cursor-pointer"
-                  title="स्थिति बदलें या कारण चुनें"
+                  title={t.changeReason}
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
                 </span>
@@ -173,7 +188,7 @@ export default function Header({
               {showReasonDropdown && (
                 <div className="absolute right-0 top-full mt-2 w-72 bg-stone-900 border border-stone-700 rounded-2xl shadow-2xl p-2 z-50 text-xs">
                   <div className="px-3 py-1.5 text-stone-400 font-medium border-b border-stone-800 flex items-center justify-between">
-                    <span>चक्की स्थिति व कारण चुनें</span>
+                    <span>{t.changeReason}</span>
                     <button
                       onClick={() => setShowReasonDropdown(false)}
                       className="text-stone-500 hover:text-white"
@@ -199,7 +214,7 @@ export default function Header({
                         <div className="flex-1">
                           <p className="line-clamp-1">{reason.label}</p>
                           <span className={`text-[10px] ${reason.open ? "text-emerald-400" : "text-red-400"}`}>
-                            {reason.open ? "दुकान चालू रहेगी" : "दुकान बंद रहेगी"}
+                            {reason.open ? t.storeWillOpen : t.storeWillClose}
                           </span>
                         </div>
                       </button>
@@ -219,9 +234,9 @@ export default function Header({
                 mill.isOpen ? "bg-emerald-400" : "bg-red-400"
               }`}
             ></span>
-            <span className="text-stone-400 font-medium flex-shrink-0">वर्तमान स्थिति:</span>
+            <span className="text-stone-400 font-medium flex-shrink-0">{t.currentStatus}</span>
             <span className="font-semibold text-stone-100 truncate">
-              {mill.statusReason || (mill.isOpen ? "चक्की चालू है • ताजा पिसाई जारी" : "चक्की अभी बंद है")}
+              {mill.statusReason || (mill.isOpen ? t.statusRunning : t.statusDayEnd)}
             </span>
           </div>
 
@@ -234,7 +249,7 @@ export default function Header({
               onClick={onOpenProfile}
               className="text-amber-400 hover:text-amber-300 font-medium text-xs underline underline-offset-2"
             >
-              प्रोफाइल बदलें
+              {t.editProfile}
             </button>
           </div>
         </div>

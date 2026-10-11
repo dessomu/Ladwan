@@ -12,11 +12,16 @@ import {
   Bike,
   Sparkles,
   ArrowRight,
-  AlertCircle,
   FileText,
 } from "lucide-react";
 
-export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder }) {
+export default function LiveOrdersView({
+  orders,
+  onUpdateStatus,
+  onSimulateOrder,
+  lang = "hi",
+  t,
+}) {
   const [statusFilter, setStatusFilter] = useState("active");
 
   const filteredOrders = orders.filter((order) => {
@@ -31,31 +36,31 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
     switch (status) {
       case "pending":
         return {
-          label: "🔔 नया आर्डर (New)",
+          label: t.badgeNew,
           bg: "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse",
           icon: Bell,
         };
       case "grinding":
         return {
-          label: "⚙️ चक्की में पिसाई जारी",
+          label: t.badgeGrinding,
           bg: "bg-blue-500/20 text-blue-300 border-blue-500/40",
           icon: Flame,
         };
       case "packed":
         return {
-          label: "📦 पैकिंग तैयार (Ready)",
+          label: t.badgePacked,
           bg: "bg-purple-500/20 text-purple-300 border-purple-500/40",
           icon: Package,
         };
       case "out_for_delivery":
         return {
-          label: "🛵 रास्ते में (On Delivery)",
+          label: t.badgeOutForDelivery,
           bg: "bg-sky-500/20 text-sky-300 border-sky-500/40",
           icon: Bike,
         };
       case "delivered":
         return {
-          label: "✅ पूरा हुआ (Delivered)",
+          label: t.badgeDelivered,
           bg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
           icon: CheckCircle2,
         };
@@ -70,12 +75,12 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-stone-900/80 p-3.5 rounded-2xl border border-stone-800">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {[
-            { id: "active", label: "चालू आर्डर (Active)", count: orders.filter((o) => ["pending", "grinding", "packed"].includes(o.status)).length },
-            { id: "pending", label: "🔔 नए (New)", count: orders.filter((o) => o.status === "pending").length },
-            { id: "grinding", label: "⚙️ पिसाई जारी", count: orders.filter((o) => o.status === "grinding").length },
-            { id: "packed", label: "📦 तैयार (Ready)", count: orders.filter((o) => o.status === "packed").length },
-            { id: "delivered", label: "✅ पूरे हुए (History)", count: orders.filter((o) => o.status === "delivered").length },
-            { id: "all", label: "सभी", count: orders.length },
+            { id: "active", label: t.filterActive, count: orders.filter((o) => ["pending", "grinding", "packed"].includes(o.status)).length },
+            { id: "pending", label: t.filterNew, count: orders.filter((o) => o.status === "pending").length },
+            { id: "grinding", label: t.filterGrinding, count: orders.filter((o) => o.status === "grinding").length },
+            { id: "packed", label: t.filterPacked, count: orders.filter((o) => o.status === "packed").length },
+            { id: "delivered", label: t.filterDelivered, count: orders.filter((o) => o.status === "delivered").length },
+            { id: "all", label: t.filterAll, count: orders.length },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -107,7 +112,7 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
           className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md shadow-amber-900/30 self-stretch sm:self-auto"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>+ टेस्ट आर्डर जनरेट करें (Audio Chime)</span>
+          <span>{t.simulateOrder}</span>
         </button>
       </div>
 
@@ -165,7 +170,7 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                 {/* Items List */}
                 <div className="space-y-2 bg-stone-950/40 p-3 rounded-xl border border-stone-800/60">
                   <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
-                    आटा किस्में व वजन (Items Ordered):
+                    {t.itemsOrdered}
                   </span>
                   {order.items.map((item, idx) => (
                     <div
@@ -176,7 +181,9 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                         <span className="w-5 h-5 rounded-md bg-stone-800 text-stone-300 flex items-center justify-center text-[10px] font-bold">
                           {item.quantity}x
                         </span>
-                        <span className="font-semibold text-white">{item.name}</span>
+                        <span className="font-semibold text-white">
+                          {lang === "en" && item.englishName ? item.englishName : item.name}
+                        </span>
                         <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 text-[11px] font-bold border border-amber-500/20">
                           {item.weight}
                         </span>
@@ -202,7 +209,8 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                         {order.customer.address}
                       </p>
                       <p className="text-[11px] text-stone-500 mt-0.5">
-                        दूरी: {order.customer.distanceKm || "2 km"}
+                        {t.distanceLabel || (lang === "en" ? "Distance:" : "दूरी:")}{" "}
+                        {order.customer.distanceKm || "2 km"}
                       </p>
                     </div>
                   </div>
@@ -211,10 +219,10 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                     <FileText className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <span className="text-[10px] text-stone-400 font-bold block">
-                        ग्राहक की विशेष हिदायत:
+                        {t.customerNoteLabel}
                       </span>
                       <p className="text-stone-200 italic text-[11px] mt-0.5">
-                        "{order.specialInstructions || "ताजा पिसाई आटा, ध्यान से पैक करें"}"
+                        "{order.specialInstructions || t.specialNotesPlaceholder || (lang === "en" ? "Fresh ground flour, please pack carefully." : "ताज़ा पिसा हुआ आटा, कृपया ध्यान से पैक करें।")}"
                       </p>
                     </div>
                   </div>
@@ -223,7 +231,7 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                 {/* Payment & Total Amount Bar */}
                 <div className="flex items-center justify-between pt-2 border-t border-stone-800/80 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-stone-400">भुगतान:</span>
+                    <span className="text-stone-400">{t.paymentLabel}</span>
                     <span
                       className={`font-semibold px-2 py-0.5 rounded-md text-[11px] ${
                         order.isPaid
@@ -231,12 +239,14 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                           : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
                       }`}
                     >
-                      {order.paymentMethod}
+                      {order.isPaid
+                        ? t.upiPaidLabel || "Online UPI (Paid)"
+                        : t.codLabel || "Cash on Delivery"}
                     </span>
                   </div>
 
                   <div className="flex items-baseline gap-1">
-                    <span className="text-stone-400 text-xs">कुल राशि:</span>
+                    <span className="text-stone-400 text-xs">{t.totalAmountLabel}</span>
                     <span className="text-base sm:text-lg font-extrabold text-amber-400">
                       ₹{order.totalAmount}
                     </span>
@@ -252,14 +262,14 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                         onClick={() => onUpdateStatus(order.id, "cancelled")}
                         className="px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-950/40 border border-red-900/40"
                       >
-                        रद्द करें (Decline)
+                        {t.btnDecline}
                       </button>
                       <button
                         type="button"
                         onClick={() => onUpdateStatus(order.id, "grinding")}
                         className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-900/30 active:scale-95 transition-all"
                       >
-                        <span>स्वीकार करें & पिसाई चालू (Start Grinding)</span>
+                        <span>{t.btnAcceptGrind}</span>
                         <ArrowRight className="w-4 h-4" />
                       </button>
                     </>
@@ -272,7 +282,7 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                       className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-purple-900/30 active:scale-95 transition-all"
                     >
                       <Package className="w-4 h-4" />
-                      <span>पिसाई पूरी • पैकिंग तैयार (Mark Packed)</span>
+                      <span>{t.btnMarkPacked}</span>
                     </button>
                   )}
 
@@ -283,7 +293,7 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                       className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-900/30 active:scale-95 transition-all"
                     >
                       <Bike className="w-4 h-4" />
-                      <span>डिलीवरी पार्टनर को सौंपा (Dispatch)</span>
+                      <span>{t.btnDispatch}</span>
                     </button>
                   )}
 
@@ -294,7 +304,7 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
                       className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 active:scale-95 transition-all"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>सफल डिलीवरी पुष्टि (Delivered)</span>
+                      <span>{t.btnConfirmDelivered}</span>
                     </button>
                   )}
                 </div>
@@ -306,10 +316,8 @@ export default function LiveOrdersView({ orders, onUpdateStatus, onSimulateOrder
         {filteredOrders.length === 0 && (
           <div className="text-center py-12 bg-stone-900/60 rounded-2xl border border-stone-800 p-6">
             <CheckCircle2 className="w-12 h-12 text-stone-600 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-stone-300">कोई आर्डर कतार में नहीं है</h3>
-            <p className="text-xs text-stone-500 mt-1">
-              जब कोई ग्राहक आर्डर करेगा तो घंटी बजेगी और आर्डर यहाँ दिखेगा।
-            </p>
+            <h3 className="text-base font-bold text-stone-300">{t.noOrdersQueue}</h3>
+            <p className="text-xs text-stone-500 mt-1">{t.noOrdersDesc}</p>
           </div>
         )}
       </div>

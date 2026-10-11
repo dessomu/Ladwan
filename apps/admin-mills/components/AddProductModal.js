@@ -1,9 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, Wheat, Sparkles } from "lucide-react";
+import { Plus, X, Wheat, Sparkles, Languages } from "lucide-react";
+import { translations } from "../lib/translations";
 
-export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
+export default function AddProductModal({
+  isOpen,
+  onClose,
+  onAddProduct,
+  lang = "hi",
+  toggleLang,
+  t,
+}) {
+  const activeT = t || translations[lang] || translations.hi;
+
   const [name, setName] = useState("");
   const [englishName, setEnglishName] = useState("");
   const [category, setCategory] = useState("Wheat Atta");
@@ -12,7 +22,9 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
   const [price5kg, setPrice5kg] = useState("220");
   const [price10kg, setPrice10kg] = useState("430");
   const [stockKg, setStockKg] = useState("200");
-  const [grindOptions, setGrindOptions] = useState("बारीक (Fine), मध्यम (Medium)");
+  const [grindOptions, setGrindOptions] = useState(
+    lang === "en" ? "Fine, Medium, Coarse" : "बारीक (Fine), मध्यम (Medium)"
+  );
 
   if (!isOpen) return null;
 
@@ -24,7 +36,8 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
       p1: "42",
       p5: "200",
       p10: "390",
-      desc: "ताजी पीली मक्का की पिसाई। सर्दियों में सरसों के साग के साथ बेहद स्वादिष्ट।",
+      descHi: "ताजी पीली मक्का की पिसाई। सर्दियों में सरसों के साग के साथ बेहद स्वादिष्ट।",
+      descEn: "Fresh stone-ground yellow maize flour. Traditional winter staple, perfect with Sarson Saag.",
     },
     {
       name: "रागी / नाचनी का आटा (Ragi Flour)",
@@ -33,7 +46,8 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
       p1: "58",
       p5: "280",
       p10: "550",
-      desc: "कैल्शियम से भरपूर, बच्चों और बुजुर्गों की हड्डियों के लिए उत्तम अनाज।",
+      descHi: "कैल्शियम से भरपूर, बच्चों और बुजुर्गों की हड्डियों के लिए उत्तम अनाज।",
+      descEn: "High calcium & natural iron. Gluten-free wholesome grain for nutritious daily rotis.",
     },
     {
       name: "जौ का शुद्ध आटा (Barley / Jau Atta)",
@@ -42,7 +56,8 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
       p1: "48",
       p5: "230",
       p10: "450",
-      desc: "ठंडी तासीर का आटा। वजन घटाने और कोलेस्ट्रॉल कम करने में मददगार।",
+      descHi: "ठंडी तासीर का आटा। वजन घटाने और कोलेस्ट्रॉल कम करने में मददगार।",
+      descEn: "Cooling natural properties. Highly recommended for blood sugar balance and digestion.",
     },
     {
       name: "गेहूं का ताजा चोकर (Wheat Bran / Choker)",
@@ -51,7 +66,8 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
       p1: "25",
       p5: "120",
       p10: "230",
-      desc: "कब्ज और पाचन के लिए शुद्ध गेहूं का चोकर। आटे में मिलाकर खाने योग्य।",
+      descHi: "कब्ज और पाचन के लिए शुद्ध गेहूं का चोकर। आटे में मिलाकर खाने योग्य।",
+      descEn: "100% natural wheat bran, high in dietary fiber for gastrointestinal and gut wellness.",
     },
   ];
 
@@ -62,12 +78,17 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
     setPrice1kg(preset.p1);
     setPrice5kg(preset.p5);
     setPrice10kg(preset.p10);
-    setDescription(preset.desc);
+    setDescription(lang === "en" ? preset.descEn : preset.descHi);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+
+    // Check primary field based on active language
+    const finalName = lang === "en" ? (name.trim() || englishName.trim()) : name.trim();
+    const finalEnglishName = englishName.trim() || finalName;
+
+    if (!finalName && !finalEnglishName) return;
 
     const grinds = grindOptions
       .split(",")
@@ -75,17 +96,26 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
       .filter(Boolean);
 
     onAddProduct({
-      name,
-      englishName: englishName || name,
+      name: finalName || finalEnglishName,
+      englishName: finalEnglishName,
       category,
-      description: description || "ताजा पत्थर-पिसा शुद्ध आटा।",
+      description:
+        description.trim() ||
+        (lang === "en"
+          ? "Fresh cold stone-ground 100% pure whole flour."
+          : "ताजा पत्थर-पिसा शुद्ध आटा।"),
       prices: {
         "1kg": Number(price1kg) || 0,
         "5kg": Number(price5kg) || 0,
         "10kg": Number(price10kg) || 0,
       },
       stockKg: Number(stockKg) || 100,
-      grindOptions: grinds.length > 0 ? grinds : ["बारीक (Fine)", "मध्यम (Medium)"],
+      grindOptions:
+        grinds.length > 0
+          ? grinds
+          : lang === "en"
+          ? ["Fine", "Medium"]
+          : ["बारीक (Fine)", "मध्यम (Medium)"],
     });
 
     onClose();
@@ -94,23 +124,43 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
       <div className="bg-stone-900 border border-stone-800 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
-        {/* Header */}
+        {/* Header with Title and Language Toggle */}
         <div className="sticky top-0 bg-stone-900/95 backdrop-blur-md px-5 py-4 border-b border-stone-800 flex items-center justify-between z-10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
               <Plus className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">नया आटा या अनाज जोड़ें</h2>
-              <p className="text-xs text-stone-400">दुकान के दैनिक रेट बोर्ड में नई किस्म शामिल करें</p>
+              <h2 className="text-base font-bold text-white leading-tight">
+                {activeT.addGrainModalTitle}
+              </h2>
+              <p className="text-xs text-stone-400 mt-0.5">
+                {activeT.addGrainModalSubtitle}
+              </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white flex items-center justify-center text-sm"
-          >
-            <X className="w-4 h-4" />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Modal-embedded Language Toggle */}
+            {toggleLang && (
+              <button
+                type="button"
+                onClick={toggleLang}
+                className="px-2.5 py-1 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-amber-300 text-xs font-semibold flex items-center gap-1.5 border border-stone-700/60 transition-colors shadow-sm"
+                title={lang === "hi" ? "Switch to English" : "हिंदी में बदलें"}
+              >
+                <Languages className="w-3.5 h-3.5 text-amber-400" />
+                <span>{lang === "hi" ? "English" : "हिंदी"}</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white flex items-center justify-center text-sm transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Form Body */}
@@ -119,7 +169,7 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
           <div>
             <label className="text-xs font-semibold text-stone-300 flex items-center gap-1.5 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              1-क्लिक टेम्पलेट चुनें (Quick Preset):
+              {activeT.quickPresetsLabel}
             </label>
             <div className="grid grid-cols-2 gap-1.5">
               {quickPresets.map((preset, idx) => (
@@ -129,64 +179,100 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
                   onClick={() => applyPreset(preset)}
                   className="text-left p-2 rounded-xl bg-stone-950 border border-stone-800 hover:border-amber-500/40 text-stone-300 text-xs transition-colors hover:bg-stone-800/60"
                 >
-                  <p className="font-semibold text-amber-300 truncate">{preset.name}</p>
-                  <span className="text-[10px] text-stone-500">₹{preset.p1}/kg</span>
+                  <p className="font-semibold text-amber-300 truncate">
+                    {lang === "en" ? preset.english : preset.name}
+                  </p>
+                  <span className="text-[10px] text-stone-500 font-mono">
+                    ₹{preset.p1}/kg • {preset.cat}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Hindi Name */}
-          <div>
-            <label className="block text-xs font-medium text-stone-300 mb-1">
-              अनाज/आटे का नाम (हिंदी) *
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="उदा. एमपी शरबती गेहूं आटा"
-              className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
-            />
-          </div>
+          {/* Primary Name Field (Swaps order & requirement based on language) */}
+          {lang === "en" ? (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-stone-300 mb-1">
+                  {activeT.grainNamePrimaryLabel}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={englishName}
+                  onChange={(e) => setEnglishName(e.target.value)}
+                  placeholder={activeT.grainNamePlaceholder}
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
 
-          {/* English Name */}
-          <div>
-            <label className="block text-xs font-medium text-stone-300 mb-1">
-              English Name (वैकल्पिक)
-            </label>
-            <input
-              type="text"
-              value={englishName}
-              onChange={(e) => setEnglishName(e.target.value)}
-              placeholder="e.g. MP Sharbati Wheat Flour"
-              className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-medium text-stone-400 mb-1">
+                  {activeT.grainNameSecondaryLabel}
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={activeT.grainNameSecondaryPlaceholder}
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-stone-300 mb-1">
+                  {activeT.grainNamePrimaryLabel}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={activeT.grainNamePlaceholder}
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
 
-          {/* Category */}
+              <div>
+                <label className="block text-xs font-medium text-stone-400 mb-1">
+                  {activeT.grainNameSecondaryLabel}
+                </label>
+                <input
+                  type="text"
+                  value={englishName}
+                  onChange={(e) => setEnglishName(e.target.value)}
+                  placeholder={activeT.grainNameSecondaryPlaceholder}
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Category Dropdown */}
           <div>
             <label className="block text-xs font-medium text-stone-300 mb-1">
-              श्रेणी (Category)
+              {activeT.categoryLabel}
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
             >
-              <option value="Wheat Atta">गेहूं आटा (Wheat Atta)</option>
-              <option value="Specialty Flour">मल्टीग्रेन / स्पेशल (Specialty Flour)</option>
-              <option value="Sattu & Besan">सत्तू व बेसन (Sattu & Besan)</option>
-              <option value="Millet Atta">मोटे अनाज (Millet Atta: Jowar, Bajra, Ragi, Makka)</option>
-              <option value="Services">पिसाई सेवा (Milling Service)</option>
+              <option value="Wheat Atta">{activeT.catWheatOption}</option>
+              <option value="Specialty Flour">{activeT.catSpecialtyOption}</option>
+              <option value="Sattu & Besan">{activeT.catSattuOption}</option>
+              <option value="Millet Atta">{activeT.catMilletsOption}</option>
+              <option value="Services">{activeT.catServicesOption}</option>
             </select>
           </div>
 
           {/* Daily Price Board (1kg, 5kg, 10kg) */}
           <div className="bg-stone-950 p-3.5 rounded-2xl border border-stone-800">
             <label className="block text-xs font-bold text-amber-400 mb-2">
-              दैनिक मूल्य दरें (Daily Selling Rates) *
+              {activeT.dailyRatesLabel}
             </label>
             <div className="grid grid-cols-3 gap-2.5">
               <div>
@@ -222,16 +308,43 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
             </div>
           </div>
 
+          {/* Stock in KG & Grind Options */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-stone-300 mb-1">
+                {activeT.stockInitialLabel}
+              </label>
+              <input
+                type="number"
+                value={stockKg}
+                onChange={(e) => setStockKg(e.target.value)}
+                className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-stone-300 mb-1">
+                {activeT.grindOptionsModalLabel}
+              </label>
+              <input
+                type="text"
+                value={grindOptions}
+                onChange={(e) => setGrindOptions(e.target.value)}
+                placeholder={activeT.grindOptionsPlaceholder}
+                className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
           {/* Description */}
           <div>
             <label className="block text-xs font-medium text-stone-300 mb-1">
-              विवरण व खासियत (Description)
+              {activeT.descLabel}
             </label>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="उदा. 100% शुद्ध देशी अनाज, चोकर युक्त, जीरो मिलावट..."
+              placeholder={activeT.descPlaceholder}
               className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -241,16 +354,16 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-400 hover:text-white"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-400 hover:text-white transition-colors"
             >
-              रद्द करें
+              {activeT.cancelBtnModal}
             </button>
             <button
               type="submit"
               className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-amber-900/40 active:scale-95 transition-all"
             >
-              <Plus className="w-4 h-4" />
-              <span>रेट बोर्ड में शामिल करें</span>
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>{activeT.submitAddGrainBtn}</span>
             </button>
           </div>
         </form>

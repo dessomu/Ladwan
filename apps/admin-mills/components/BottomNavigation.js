@@ -1,28 +1,28 @@
 "use client";
 
-import { Tag, Bell, BookOpen, Store, Wheat } from "lucide-react";
+import { Tag, Bell, BookOpen, Store } from "lucide-react";
 
-export default function BottomNavigation({ activeTab, setActiveTab, ordersCount }) {
+export default function BottomNavigation({ activeTab, setActiveTab, ordersCount, t }) {
   const tabs = [
     {
       id: "rates",
-      label: "रेट लिस्ट (Rates)",
+      label: t?.tabRates?.split(" ")[0] || "Rates",
       icon: Tag,
     },
     {
       id: "orders",
-      label: "लाइव आर्डर (Orders)",
+      label: t?.tabOrders?.split(" ")[0] || "Orders",
       icon: Bell,
       badge: ordersCount,
     },
     {
       id: "ledger",
-      label: "दैनिक खाता (Ledger)",
+      label: t?.tabLedger?.split(" ")[0] || "Ledger",
       icon: BookOpen,
     },
     {
       id: "profile",
-      label: "चक्की प्रोफाइल",
+      label: t?.tabProfile?.split(" ")[0] || "Profile",
       icon: Store,
     },
   ];
@@ -53,7 +53,7 @@ export default function BottomNavigation({ activeTab, setActiveTab, ordersCount 
                 )}
               </div>
               <span className="text-[10px] mt-1 tracking-tight">
-                {tab.label.split(" ")[0]}
+                {tab.label}
               </span>
             </button>
           );

@@ -1,23 +1,23 @@
 "use client";
 
 import {
-  IndianRupee,
-  Wheat,
-  CheckCircle2,
   Calendar,
   CreditCard,
   Banknote,
-  ArrowUpRight,
-  TrendingUp,
+  CheckCircle2,
 } from "lucide-react";
 
-export default function DailyLedgerView({ metrics, orders }) {
+export default function DailyLedgerView({ metrics, orders, lang = "hi", t }) {
   const completedOrders = orders.filter((o) => o.status === "delivered");
   const onlineOrders = orders.filter((o) => o.isPaid);
   const codOrders = orders.filter((o) => !o.isPaid && o.status !== "cancelled");
 
   const onlineRevenue = onlineOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const codRevenue = codOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+  const subtitle = (t.ledgerSubtitle || "")
+    .replace("{kg}", metrics.todayTotalKg)
+    .replace("{orders}", metrics.todayOrdersCount);
 
   return (
     <div className="space-y-4">
@@ -26,13 +26,13 @@ export default function DailyLedgerView({ metrics, orders }) {
         <div>
           <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
             <Calendar className="w-4 h-4" />
-            <span>आज का दैनिक बही-खाता (Today's Ledger)</span>
+            <span>{t.ledgerTitle}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
             ₹{metrics.todayGrossRevenue.toLocaleString("en-IN")}
           </h2>
           <p className="text-xs text-stone-400 mt-0.5">
-            आज कुल {metrics.todayTotalKg} किलो आटा पीसा गया और {metrics.todayOrdersCount} आर्डर पूरे हुए।
+            {subtitle}
           </p>
         </div>
 
@@ -40,13 +40,13 @@ export default function DailyLedgerView({ metrics, orders }) {
         <div className="flex items-center gap-3 bg-stone-950 p-3 rounded-2xl border border-stone-800 self-stretch sm:self-auto">
           <div>
             <span className="text-[10px] text-stone-500 font-bold block uppercase">
-              लाडवां सेटलमेंट (खाते में ट्रांसफ़र)
+              {t.settlementNotice}
             </span>
             <span className="text-sm font-bold text-emerald-400">
-              ₹5,120 सेटल्ड
+              ₹5,120 {t.settledBadge}
             </span>
             <span className="text-[10px] text-stone-400 ml-1 font-mono">
-              (₹1,720 कल सुबह 8 बजे)
+              (₹1,720 {t.nextDayNotice})
             </span>
           </div>
         </div>
@@ -60,12 +60,12 @@ export default function DailyLedgerView({ metrics, orders }) {
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-xs text-stone-400 font-medium">ऑनलाइन यूपीआई भुगतान</span>
+              <span className="text-xs text-stone-400 font-medium">{t.onlineUpi}</span>
               <p className="text-lg font-bold text-white">₹{onlineRevenue.toLocaleString("en-IN")}</p>
             </div>
           </div>
           <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold">
-            {onlineOrders.length} आर्डर
+            {onlineOrders.length}
           </span>
         </div>
 
@@ -75,12 +75,12 @@ export default function DailyLedgerView({ metrics, orders }) {
               <Banknote className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-xs text-stone-400 font-medium">नकद (Cash on Delivery)</span>
+              <span className="text-xs text-stone-400 font-medium">{t.cashOnDelivery}</span>
               <p className="text-lg font-bold text-white">₹{codRevenue.toLocaleString("en-IN")}</p>
             </div>
           </div>
           <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-semibold">
-            {codOrders.length} आर्डर
+            {codOrders.length}
           </span>
         </div>
       </div>
@@ -90,10 +90,10 @@ export default function DailyLedgerView({ metrics, orders }) {
         <div className="flex items-center justify-between pb-2 border-b border-stone-800">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>आज पूर्ण हुए आर्डर (Delivered History)</span>
+            <span>{t.deliveredHistory}</span>
           </h3>
           <span className="text-xs text-stone-400 font-mono">
-            {completedOrders.length} पूर्ण
+            {completedOrders.length} {t.ordersCount}
           </span>
         </div>
 
@@ -106,20 +106,27 @@ export default function DailyLedgerView({ metrics, orders }) {
                   <span className="font-semibold text-white">{ord.customer.name}</span>
                 </div>
                 <p className="text-stone-400 text-[11px] mt-0.5">
-                  {ord.items.map((i) => `${i.name} (${i.weight})`).join(", ")}
+                  {ord.items
+                    .map(
+                      (i) =>
+                        `${lang === "en" && i.englishName ? i.englishName : i.name} (${i.weight})`
+                    )
+                    .join(", ")}
                 </p>
               </div>
 
               <div className="text-right">
                 <span className="font-bold text-white block">₹{ord.totalAmount}</span>
-                <span className="text-[10px] text-emerald-400">सफल डिलीवरी</span>
+                <span className="text-[10px] text-emerald-400 font-semibold">
+                  {t.deliveredStatus || (lang === "en" ? "Delivered" : "पूरा हुआ")}
+                </span>
               </div>
             </div>
           ))}
 
           {completedOrders.length === 0 && (
             <p className="text-xs text-stone-500 py-4 text-center">
-              आज अभी तक कोई आर्डर डिलीवर नहीं हुआ है।
+              {t.noDeliveredToday}
             </p>
           )}
         </div>

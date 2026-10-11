@@ -5,14 +5,13 @@ import {
   Search,
   Plus,
   Wheat,
-  SlidersHorizontal,
-  Check,
-  X,
   TrendingUp,
-  Sparkles,
-  Info,
-  CheckCircle2,
-  Package,
+  Check,
+  Edit2,
+  X,
+  ToggleLeft,
+  ToggleRight,
+  Power,
 } from "lucide-react";
 
 export default function RateBoard({
@@ -20,18 +19,24 @@ export default function RateBoard({
   onUpdatePrice,
   onToggleStock,
   onOpenAddModal,
+  lang = "hi",
+  t,
 }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingPriceId, setEditingPriceId] = useState(null); // { id, weightKey }
+
+  // Track which product and weight tier is currently being edited:
+  // editingItem: `${productId}_${weightKey}` or null
+  const [editingItem, setEditingItem] = useState(null);
+  const [draftPrice, setDraftPrice] = useState("");
 
   const categories = [
-    { id: "all", label: "सभी (All Items)" },
-    { id: "Wheat Atta", label: "गेहूं आटा (Wheat)" },
-    { id: "Specialty Flour", label: "मल्टीग्रेन (Multigrain)" },
-    { id: "Sattu & Besan", label: "सत्तू व बेसन" },
-    { id: "Millet Atta", label: "मोटे अनाज (Millets)" },
-    { id: "Services", label: "पिसाई सेवा (Services)" },
+    { id: "all", label: t.allCategories },
+    { id: "Wheat Atta", label: t.catWheat },
+    { id: "Specialty Flour", label: t.catMultigrain },
+    { id: "Sattu & Besan", label: t.catSattuBesan },
+    { id: "Millet Atta", label: t.catMillets },
+    { id: "Services", label: t.catServices },
   ];
 
   const filteredProducts = products.filter((item) => {
@@ -44,9 +49,23 @@ export default function RateBoard({
     return matchesCat && matchesSearch;
   });
 
-  const handlePriceStep = (productId, weightKey, currentPrice, delta) => {
-    const newPrice = Math.max(1, (Number(currentPrice) || 0) + delta);
-    onUpdatePrice(productId, weightKey, newPrice);
+  const handleStartEdit = (productId, weightKey, currentPrice) => {
+    setEditingItem(`${productId}_${weightKey}`);
+    setDraftPrice(String(currentPrice));
+  };
+
+  const handleSavePrice = (productId, weightKey) => {
+    const numericPrice = Number(draftPrice);
+    if (!isNaN(numericPrice) && numericPrice > 0) {
+      onUpdatePrice(productId, weightKey, numericPrice);
+    }
+    setEditingItem(null);
+    setDraftPrice("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+    setDraftPrice("");
   };
 
   return (
@@ -59,7 +78,7 @@ export default function RateBoard({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="आटा या अनाज खोजें (उदा. शरबती, सत्तू, बेसन, बाजरा)..."
+            placeholder={t.searchPlaceholder}
             className="w-full bg-stone-950/70 border border-stone-800 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
           />
           {searchQuery && (
@@ -77,7 +96,7 @@ export default function RateBoard({
           className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-900/30 transition-all active:scale-95"
         >
           <Plus className="w-4 h-4" />
-          <span>+ नया आटा / अनाज जोड़ें</span>
+          <span>{t.addNewItem}</span>
         </button>
       </div>
 
@@ -102,12 +121,10 @@ export default function RateBoard({
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 flex items-center justify-between text-xs text-amber-200">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <span>
-            <strong>दैनिक रेट बोर्ड (Daily Rate Board):</strong> मंडी के अनुसार रोज भाव बदलें। मूल्य पर क्लिक करें या <strong>+ / -</strong> बटन से 1 सेकंड में अपडेट करें।
-          </span>
+          <span>{t.dailyRateBoardNotice}</span>
         </div>
         <span className="hidden md:inline-block px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-mono text-[10px]">
-          {filteredProducts.length} उपलब्ध किस्में
+          {filteredProducts.length} {t.availableVarieties}
         </span>
       </div>
 
@@ -115,6 +132,8 @@ export default function RateBoard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
         {filteredProducts.map((product) => {
           const isAvailable = product.isAvailable;
+          const displayTitle = lang === "en" && product.englishName ? product.englishName : product.name;
+          const subtitle = lang === "en" ? product.name : product.englishName;
 
           return (
             <div
@@ -122,10 +141,10 @@ export default function RateBoard({
               className={`relative bg-stone-900/90 rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col justify-between ${
                 isAvailable
                   ? "border-stone-800 hover:border-amber-500/40 shadow-sm"
-                  : "border-red-900/40 bg-stone-950/60 opacity-80"
+                  : "border-red-900/40 bg-stone-950/80 opacity-85"
               }`}
             >
-              {/* Card Top: Image, Titles & Stock Switch */}
+              {/* Card Top: Image, Titles & Explicit Stock Toggle Button */}
               <div className="p-3.5 sm:p-4">
                 <div className="flex items-start gap-3">
                   {/* Grain Image */}
@@ -142,30 +161,49 @@ export default function RateBoard({
                     )}
                   </div>
 
-                  {/* Info and Stock Toggle */}
+                  {/* Info and Stock Toggle Button */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                       <div>
                         <h3 className="text-sm sm:text-base font-bold text-white leading-tight">
-                          {product.name}
+                          {displayTitle}
                         </h3>
                         <p className="text-[11px] text-stone-400 font-medium">
-                          {product.englishName}
+                          {subtitle}
                         </p>
                       </div>
 
-                      {/* 1-Tap Stock Switch */}
-                      <button
-                        type="button"
-                        onClick={() => onToggleStock(product.id)}
-                        className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold transition-all border ${
-                          isAvailable
-                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
-                            : "bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25"
-                        }`}
-                      >
-                        {isAvailable ? "🟢 उपलब्ध (In Stock)" : "🔴 खत्म (Out of Stock)"}
-                      </button>
+                      {/* EXPLICIT STOCK IN / OUT OF STOCK BUTTON */}
+                      <div className="flex flex-col items-start sm:items-end">
+                        <span className="text-[10px] text-stone-400 font-semibold mb-1 flex items-center gap-1">
+                          <Power className="w-2.5 h-2.5 text-stone-400" />
+                          {t.stockSwitchLabel}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => onToggleStock(product.id)}
+                          title={`${t.clickToSwitch}: ${isAvailable ? t.outOfStockBtn : t.inStockBtn}`}
+                          className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-md border ${
+                            isAvailable
+                              ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-200 hover:bg-emerald-900/80 ring-1 ring-emerald-500/20"
+                              : "bg-red-950/70 border-red-500/50 text-red-200 hover:bg-red-900/80 ring-1 ring-red-500/20"
+                          }`}
+                        >
+                          {/* Sliding switch track icon */}
+                          <span
+                            className={`w-7 h-4 rounded-full flex items-center p-0.5 transition-colors ${
+                              isAvailable ? "bg-emerald-500 justify-end" : "bg-red-500 justify-start"
+                            }`}
+                          >
+                            <span className="w-3 h-3 rounded-full bg-white shadow-sm"></span>
+                          </span>
+
+                          <span className="tracking-tight">
+                            {isAvailable ? t.inStockBtn : t.outOfStockBtn}
+                          </span>
+                        </button>
+                      </div>
                     </div>
 
                     <p className="mt-1.5 text-xs text-stone-400 line-clamp-2 leading-relaxed">
@@ -175,7 +213,9 @@ export default function RateBoard({
                     {/* Grind Coarseness Chips */}
                     {product.grindOptions && product.grindOptions.length > 0 && (
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] text-stone-500 font-medium">पिसाई:</span>
+                        <span className="text-[10px] text-stone-500 font-medium">
+                          {t.grindOptionsLabel}
+                        </span>
                         {product.grindOptions.map((grind, idx) => (
                           <span
                             key={idx}
@@ -190,23 +230,25 @@ export default function RateBoard({
                 </div>
               </div>
 
-              {/* Card Bottom: Daily Rate Board (1kg, 5kg, 10kg Price Editor) */}
-              <div className="bg-stone-950/80 border-t border-stone-800/80 p-3 sm:p-4">
+              {/* Card Bottom: Daily Rate Board with "Edit Price" -> "OK" Button Pattern */}
+              <div className="bg-stone-950/90 border-t border-stone-800/80 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1 uppercase tracking-wider">
                     <Wheat className="w-3.5 h-3.5" />
-                    दैनिक रेट बोर्ड (Daily Selling Price)
+                    {t.dailySellingPrice}
                   </span>
                   <span className="text-[10px] text-stone-500">
-                    स्टॉक: ~{product.stockKg} kg
+                    {t.stockKgLabel} ~{product.stockKg} kg
                   </span>
                 </div>
 
-                {/* 3 Size Price Tiles */}
+                {/* 3 Size Price Tiles with Edit Price / OK Toggle */}
                 <div className="grid grid-cols-3 gap-2">
                   {["1kg", "5kg", "10kg"].map((weightKey) => {
                     const price = product.prices?.[weightKey] ?? 0;
                     const isMillingService = product.category === "Services";
+                    const isEditing = editingItem === `${product.id}_${weightKey}`;
+
                     const perKgRate =
                       weightKey === "1kg"
                         ? price
@@ -217,63 +259,85 @@ export default function RateBoard({
                     return (
                       <div
                         key={weightKey}
-                        className="bg-stone-900 border border-stone-800 rounded-xl p-2 flex flex-col justify-between hover:border-amber-500/40 transition-colors"
+                        className={`bg-stone-900 border rounded-xl p-2.5 flex flex-col justify-between transition-all ${
+                          isEditing
+                            ? "border-amber-500 ring-2 ring-amber-500/20 bg-stone-950"
+                            : "border-stone-800 hover:border-amber-500/30"
+                        }`}
                       >
+                        {/* Weight Header */}
                         <div className="flex items-center justify-between text-[11px] font-bold text-stone-300">
-                          <span className="px-1.5 py-0.2 rounded bg-stone-800 text-stone-200">
+                          <span className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-200">
                             {weightKey}
                           </span>
-                          {!isMillingService && (
+                          {!isMillingService && !isEditing && (
                             <span className="text-[9px] text-stone-500 font-mono">
                               ₹{perKgRate}/kg
                             </span>
                           )}
                         </div>
 
-                        {/* Price Display and Direct Steppers */}
-                        <div className="my-1.5 text-center">
-                          <div className="flex items-baseline justify-center gap-0.5">
-                            <span className="text-xs font-bold text-amber-400">₹</span>
-                            <span className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
-                              {price}
-                            </span>
-                          </div>
+                        {/* Price Display OR Active Input Box */}
+                        <div className="my-2 text-center">
+                          {isEditing ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-xs font-bold text-amber-400">₹</span>
+                              <input
+                                type="number"
+                                autoFocus
+                                value={draftPrice}
+                                onChange={(e) => setDraftPrice(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleSavePrice(product.id, weightKey);
+                                  } else if (e.key === "Escape") {
+                                    handleCancelEdit();
+                                  }
+                                }}
+                                className="w-16 text-center text-lg font-black text-white bg-stone-900 border border-amber-500/80 rounded-lg py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-baseline justify-center gap-0.5">
+                              <span className="text-xs font-bold text-amber-400">₹</span>
+                              <span className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                                {price}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
-                        {/* Quick 1-Tap Adjuster Steppers */}
-                        <div className="flex items-center justify-between gap-1 pt-1 border-t border-stone-800/80">
-                          <button
-                            type="button"
-                            onClick={() => handlePriceStep(product.id, weightKey, price, -5)}
-                            title="-₹5"
-                            className="px-1.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white text-[10px] font-bold active:scale-95 transition-all"
-                          >
-                            -5
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handlePriceStep(product.id, weightKey, price, -1)}
-                            title="-₹1"
-                            className="px-1.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white text-[10px] font-bold active:scale-95 transition-all"
-                          >
-                            -1
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handlePriceStep(product.id, weightKey, price, +1)}
-                            title="+₹1"
-                            className="px-1.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold active:scale-95 transition-all border border-amber-500/30"
-                          >
-                            +1
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handlePriceStep(product.id, weightKey, price, +5)}
-                            title="+₹5"
-                            className="px-1.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold active:scale-95 transition-all border border-amber-500/30"
-                          >
-                            +5
-                          </button>
+                        {/* EDIT PRICE <-> OK BUTTON */}
+                        <div className="pt-1.5 border-t border-stone-800/80">
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleSavePrice(product.id, weightKey)}
+                                className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-sm"
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                <span>{t.okBtn}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                title={t.cancelPriceBtn}
+                                className="p-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white text-xs"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleStartEdit(product.id, weightKey, price)}
+                              className="w-full py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700/90 text-stone-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1 active:scale-95 transition-all border border-stone-700/50"
+                            >
+                              <Edit2 className="w-3 h-3 text-amber-400" />
+                              <span>{t.editPriceBtn}</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -288,10 +352,8 @@ export default function RateBoard({
       {filteredProducts.length === 0 && (
         <div className="text-center py-12 bg-stone-900/60 rounded-2xl border border-stone-800 p-6">
           <Wheat className="w-12 h-12 text-stone-600 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-stone-300">कोई आटा या अनाज नहीं मिला</h3>
-          <p className="text-xs text-stone-500 mt-1">
-            कृपया सर्च शब्द बदलें या ऊपर दिए बटन से नया आइटम जोड़ें।
-          </p>
+          <h3 className="text-base font-bold text-stone-300">{t.noProductsFound}</h3>
+          <p className="text-xs text-stone-500 mt-1">{t.noProductsDesc}</p>
         </div>
       )}
     </div>

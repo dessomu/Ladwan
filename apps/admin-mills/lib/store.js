@@ -15,13 +15,17 @@ import {
 } from "./seedData";
 import { soundManager } from "./audioAlert";
 
+import { translations } from "./translations";
+
 const STORAGE_KEYS = {
   MILL: "ladwan_admin_mill_v1",
   PRODUCTS: "ladwan_admin_products_v1",
   ORDERS: "ladwan_admin_orders_v1",
+  LANG: "ladwan_admin_lang_v1",
 };
 
 const UPDATE_EVENT_NAME = "ladwan:admin-store-updated";
+
 
 // Helper for safe client-side localStorage access
 function getStoredJson(key, fallback) {
@@ -245,11 +249,25 @@ export const millRepository = {
     };
   },
 
+  getLang() {
+    if (typeof window === "undefined") return "hi";
+    return localStorage.getItem(STORAGE_KEYS.LANG) || "hi";
+  },
+
+  setLang(newLang) {
+    if (typeof window === "undefined") return "hi";
+    localStorage.setItem(STORAGE_KEYS.LANG, newLang);
+    window.dispatchEvent(new CustomEvent(UPDATE_EVENT_NAME, { detail: { lang: newLang } }));
+    soundManager.playSuccessTone();
+    return newLang;
+  },
+
   resetAllData() {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.MILL, JSON.stringify(INITIAL_MILL));
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(INITIAL_ORDERS));
+    localStorage.setItem(STORAGE_KEYS.LANG, "hi");
     window.dispatchEvent(new CustomEvent(UPDATE_EVENT_NAME, { detail: { reset: true } }));
     soundManager.playSuccessTone();
   },
@@ -263,6 +281,7 @@ export function useChakkiStore() {
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [orders, setOrders] = useState(INITIAL_ORDERS);
   const [metrics, setMetrics] = useState(INITIAL_METRICS);
+  const [lang, setLangState] = useState("hi");
   const [isClient, setIsClient] = useState(false);
 
   const refreshAll = () => {
@@ -270,6 +289,7 @@ export function useChakkiStore() {
     setProducts(millRepository.getProducts());
     setOrders(millRepository.getOrders());
     setMetrics(millRepository.getMetrics());
+    setLangState(millRepository.getLang());
   };
 
   useEffect(() => {
@@ -289,6 +309,9 @@ export function useChakkiStore() {
     };
   }, []);
 
+  const currentLang = lang || "hi";
+  const t = translations[currentLang] || translations.hi;
+
   return {
     isClient,
     isFirebase: isFirebaseConfigured,
@@ -296,6 +319,10 @@ export function useChakkiStore() {
     products,
     orders,
     metrics,
+    lang: currentLang,
+    t,
+    setLang: (newLang) => millRepository.setLang(newLang),
+    toggleLang: () => millRepository.setLang(currentLang === "hi" ? "en" : "hi"),
     // Actions
     toggleStoreStatus: () => millRepository.toggleStoreStatus(),
     updateMill: (updates) => millRepository.updateMill(updates),
@@ -309,3 +336,4 @@ export function useChakkiStore() {
     playChime: () => soundManager.playOrderBell(),
   };
 }
+

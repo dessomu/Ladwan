@@ -9,6 +9,22 @@ const outfit = Outfit({
 export const metadata = {
   title: "लाडवां चक्की एडमिन | Ladwan Chakki Owner Portal",
   description: "Live Rate Board, Duty Status & Order Management for Local Flour Mills (Atta Chakkis)",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "लाडवां चक्की",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export const viewport = {

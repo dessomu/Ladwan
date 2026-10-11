@@ -10,7 +10,8 @@ import DailyLedgerView from "../components/DailyLedgerView";
 import AddProductModal from "../components/AddProductModal";
 import MillProfileModal from "../components/MillProfileModal";
 import BottomNavigation from "../components/BottomNavigation";
-import { Tag, Bell, BookOpen, Store, Wheat, Sparkles } from "lucide-react";
+import PwaManager from "../components/PwaManager";
+import { Tag, Bell, BookOpen, Store, Wheat, Languages } from "lucide-react";
 
 export default function ChakkiAdminHome() {
   const {
@@ -20,6 +21,10 @@ export default function ChakkiAdminHome() {
     products,
     orders,
     metrics,
+    lang,
+    t,
+    setLang,
+    toggleLang,
     toggleStoreStatus,
     updateMill,
     updateProductPrice,
@@ -31,7 +36,7 @@ export default function ChakkiAdminHome() {
     playChime,
   } = useChakkiStore();
 
-  const [activeTab, setActiveTab] = useState("rates"); // "rates" | "orders" | "ledger"
+  const [activeTab, setActiveTab] = useState("rates"); // "rates" | "orders" | "ledger" | "profile"
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -54,7 +59,10 @@ export default function ChakkiAdminHome() {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-950 text-stone-100 pb-20 sm:pb-8">
-      {/* 1. Header with Master Dukan Chalu/Band Switch */}
+      {/* PWA Network & Mobile Install Controller */}
+      <PwaManager lang={lang} />
+
+      {/* 1. Header with Master Duty Toggle and Language Switch */}
       <Header
         mill={mill}
         onToggleStatus={toggleStoreStatus}
@@ -70,6 +78,9 @@ export default function ChakkiAdminHome() {
         onOpenProfile={() => setIsProfileOpen(true)}
         onResetData={resetAllData}
         isFirebase={isFirebase}
+        lang={lang}
+        toggleLang={toggleLang}
+        t={t}
       />
 
       {/* 2. Main Content Container */}
@@ -79,6 +90,8 @@ export default function ChakkiAdminHome() {
           metrics={metrics}
           mill={mill}
           onOpenOrdersTab={() => setActiveTab("orders")}
+          lang={lang}
+          t={t}
         />
 
         {/* Desktop Navigation Tabs */}
@@ -92,7 +105,7 @@ export default function ChakkiAdminHome() {
             }`}
           >
             <Tag className="w-4 h-4" />
-            <span>दैनिक रेट लिस्ट व स्टॉक (Rate Board & Stock)</span>
+            <span>{t.tabRates}</span>
           </button>
 
           <button
@@ -104,7 +117,7 @@ export default function ChakkiAdminHome() {
             }`}
           >
             <Bell className="w-4 h-4" />
-            <span>लाइव आर्डर कतार (Orders Pipeline)</span>
+            <span>{t.tabOrders}</span>
             {activeOrdersCount > 0 && (
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-mono font-extrabold ${
@@ -127,7 +140,7 @@ export default function ChakkiAdminHome() {
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>दैनिक बही-खाता (Daily Ledger)</span>
+            <span>{t.tabLedger}</span>
           </button>
         </div>
 
@@ -138,6 +151,8 @@ export default function ChakkiAdminHome() {
             onUpdatePrice={updateProductPrice}
             onToggleStock={toggleProductStock}
             onOpenAddModal={() => setIsAddProductOpen(true)}
+            lang={lang}
+            t={t}
           />
         )}
 
@@ -146,45 +161,63 @@ export default function ChakkiAdminHome() {
             orders={orders}
             onUpdateStatus={updateOrderStatus}
             onSimulateOrder={simulateIncomingOrder}
+            lang={lang}
+            t={t}
           />
         )}
 
         {activeTab === "ledger" && (
-          <DailyLedgerView metrics={metrics} orders={orders} />
+          <DailyLedgerView
+            metrics={metrics}
+            orders={orders}
+            lang={lang}
+            t={t}
+          />
         )}
 
         {activeTab === "profile" && (
           <div className="bg-stone-900/90 border border-stone-800 rounded-2xl p-5 space-y-4">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <Store className="w-5 h-5 text-amber-400" />
-              <span>चक्की प्रोफाइल विवरण</span>
+              <span>{t.settingsTitle}</span>
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="bg-stone-950 p-3 rounded-xl border border-stone-800">
-                <span className="text-stone-500 block">चक्की नाम:</span>
-                <span className="font-bold text-white text-sm">{mill.name}</span>
+                <span className="text-stone-500 block">{t.millNameLabel}</span>
+                <span className="font-bold text-white text-sm">
+                  {lang === "en" && mill.englishName ? mill.englishName : mill.name}
+                </span>
               </div>
               <div className="bg-stone-950 p-3 rounded-xl border border-stone-800">
-                <span className="text-stone-500 block">मालिक:</span>
+                <span className="text-stone-500 block">{t.ownerNameLabel}</span>
                 <span className="font-bold text-white text-sm">{mill.ownerName}</span>
               </div>
               <div className="bg-stone-950 p-3 rounded-xl border border-stone-800">
-                <span className="text-stone-500 block">फोन नंबर:</span>
+                <span className="text-stone-500 block">{t.phoneLabel}</span>
                 <span className="font-bold text-white text-sm">{mill.phone}</span>
               </div>
               <div className="bg-stone-950 p-3 rounded-xl border border-stone-800">
-                <span className="text-stone-500 block">समय:</span>
+                <span className="text-stone-500 block">{t.timings}</span>
                 <span className="font-bold text-white text-sm">
-                  {mill.openingTime} से {mill.closingTime}
+                  {mill.openingTime} - {mill.closingTime}
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => setIsProfileOpen(true)}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs"
-            >
-              प्रोफाइल एडिट करें
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs"
+              >
+                {t.editProfile}
+              </button>
+              <button
+                onClick={toggleLang}
+                className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs flex items-center gap-1.5 border border-stone-700"
+              >
+                <Languages className="w-3.5 h-3.5 text-amber-400" />
+                <span>{lang === "hi" ? "Switch to English" : "हिंदी में बदलें"}</span>
+              </button>
+            </div>
           </div>
         )}
       </main>
@@ -194,6 +227,7 @@ export default function ChakkiAdminHome() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         ordersCount={activeOrdersCount}
+        t={t}
       />
 
       {/* 4. Modals */}
@@ -201,6 +235,9 @@ export default function ChakkiAdminHome() {
         isOpen={isAddProductOpen}
         onClose={() => setIsAddProductOpen(false)}
         onAddProduct={addProduct}
+        lang={lang}
+        toggleLang={toggleLang}
+        t={t}
       />
 
       <MillProfileModal
@@ -208,6 +245,9 @@ export default function ChakkiAdminHome() {
         onClose={() => setIsProfileOpen(false)}
         mill={mill}
         onSave={(updates) => updateMill(updates)}
+        lang={lang}
+        onSelectLang={setLang}
+        t={t}
       />
     </div>
   );
