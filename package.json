@@ -1,0 +1,29 @@
+{
+  "name": "Ladwan",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "dev:admin": "pnpm --filter admin-mills dev",
+    "dev:customer": "pnpm --filter customer-pwa dev",
+    "dev:delivery": "pnpm --filter delivery-boy dev",
+    "dev:super": "pnpm --filter super-admin dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.10.1",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.10.1",
+  "type": "module",
+  "devDependencies": {
+    "turbo": "^2.11.7"
+  }
+}

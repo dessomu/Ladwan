@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  unrs-resolver: false
+  sharp: false
+  "@firebase/util": false
+  protobufjs: false
