@@ -1,0 +1,58 @@
+{
+  "id": "/?source=pwa",
+  "name": "लाडवां चक्की एडमिन - Ladwan Chakki Owner",
+  "short_name": "लाडवां चक्की",
+  "description": "Daily Rate Board, Duty Status & Order Pipeline for Local Atta Chakkis",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0c0a09",
+  "theme_color": "#d97706",
+  "lang": "hi",
+  "dir": "auto",
+  "categories": ["business", "productivity", "food"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Rate Board (दैनिक रेट बोर्ड)",
+      "short_name": "Rates",
+      "description": "Open Daily Rate Board & Stock Controls",
+      "url": "/?tab=rates",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live Orders (लाइव आर्डर)",
+      "short_name": "Orders",
+      "description": "View Live Orders and Grinding Queue",
+      "url": "/?tab=orders",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

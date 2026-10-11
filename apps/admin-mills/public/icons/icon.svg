@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="chakkiGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="60%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#b45309" />
+    </radialGradient>
+    <radialGradient id="innerStone" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#292524" />
+      <stop offset="100%" stop-color="#1c1917" />
+    </radialGradient>
+    <linearGradient id="wheatGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#0c0a09" />
+  
+  <!-- Outer Chakki Stone -->
+  <circle cx="256" cy="256" r="190" fill="url(#chakkiGrad)" stroke="#fbbf24" stroke-width="8" />
+  
+  <!-- Inner Stone -->
+  <circle cx="256" cy="256" r="145" fill="url(#innerStone)" stroke="#f59e0b" stroke-width="6" />
+  
+  <!-- Radial Stone Milling Grooves -->
+  <g stroke="#d97706" stroke-width="7" stroke-linecap="round" opacity="0.8">
+    <line x1="256" y1="130" x2="256" y2="185" />
+    <line x1="256" y1="327" x2="256" y2="382" />
+    <line x1="130" y1="256" x2="185" y2="256" />
+    <line x1="327" y1="256" x2="382" y2="256" />
+    <line x1="167" y1="167" x2="206" y2="206" />
+    <line x1="306" y1="306" x2="345" y2="345" />
+    <line x1="167" y1="345" x2="206" y2="306" />
+    <line x1="306" y1="206" x2="345" y2="167" />
+  </g>
+  
+  <!-- Central Pivot -->
+  <circle cx="256" cy="256" r="48" fill="url(#chakkiGrad)" stroke="#fef08a" stroke-width="4" />
+  
+  <!-- Center Golden Grain Icon -->
+  <circle cx="256" cy="256" r="20" fill="url(#wheatGold)" />
+</svg>
