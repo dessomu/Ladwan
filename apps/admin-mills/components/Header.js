@@ -13,10 +13,13 @@ import {
   ChevronDown,
   RotateCcw,
   Languages,
+  LogOut,
 } from "lucide-react";
 
 export default function Header({
   mill,
+  user,
+  onLogout,
   onToggleStatus,
   onUpdateStatusReason,
   onSimulateOrder,
@@ -96,6 +99,26 @@ export default function Header({
             <RotateCcw className="w-3 h-3" />
             <span className="hidden md:inline">{t.resetData}</span>
           </button>
+
+          {user && (
+            <div className="flex items-center gap-2 pl-2 border-l border-stone-800">
+              <span className="hidden lg:inline text-[11px] text-stone-300">
+                <span className="text-stone-400">{t.loggedInAs}</span>{" "}
+                <span className="font-semibold text-amber-300">
+                  {lang === "en" && user.englishDisplayName ? user.englishDisplayName : user.displayName || user.email}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={onLogout}
+                title={t.logoutBtn}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-stone-800/80 hover:bg-red-950/60 hover:text-red-300 text-stone-300 text-[11px] border border-stone-700/60 hover:border-red-800/60 transition-all active:scale-95"
+              >
+                <LogOut className="w-3 h-3 text-stone-400" />
+                <span>{t.logoutBtn}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

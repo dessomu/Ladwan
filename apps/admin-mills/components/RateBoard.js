@@ -13,6 +13,11 @@ import {
   ToggleRight,
   Power,
 } from "lucide-react";
+import {
+  formatProductDescription,
+  formatProductBadge,
+  formatGrindOption,
+} from "../lib/langUtils";
 
 export default function RateBoard({
   products,
@@ -132,8 +137,17 @@ export default function RateBoard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
         {filteredProducts.map((product) => {
           const isAvailable = product.isAvailable;
-          const displayTitle = lang === "en" && product.englishName ? product.englishName : product.name;
-          const subtitle = lang === "en" ? product.name : product.englishName;
+          const displayTitle =
+            lang === "en" && product.englishName ? product.englishName : product.name;
+          const subtitle = lang === "en" ? product.name : (product.englishName || "");
+          const displayDescription = formatProductDescription(product, lang);
+          const displayBadge = formatProductBadge(product, lang);
+          const grindsToDisplay =
+            lang === "en" &&
+            product.englishGrindOptions &&
+            product.englishGrindOptions.length > 0
+              ? product.englishGrindOptions
+              : (product.grindOptions || []).map((g) => formatGrindOption(g, lang));
 
           return (
             <div
@@ -154,9 +168,9 @@ export default function RateBoard({
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
-                    {product.badge && (
+                    {displayBadge && (
                       <span className="absolute bottom-0 left-0 right-0 bg-stone-950/90 text-amber-300 text-[9px] font-bold text-center py-0.5 truncate px-1">
-                        {product.badge}
+                        {displayBadge}
                       </span>
                     )}
                   </div>
@@ -207,16 +221,16 @@ export default function RateBoard({
                     </div>
 
                     <p className="mt-1.5 text-xs text-stone-400 line-clamp-2 leading-relaxed">
-                      {product.description}
+                      {displayDescription}
                     </p>
 
                     {/* Grind Coarseness Chips */}
-                    {product.grindOptions && product.grindOptions.length > 0 && (
+                    {grindsToDisplay && grindsToDisplay.length > 0 && (
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] text-stone-500 font-medium">
                           {t.grindOptionsLabel}
                         </span>
-                        {product.grindOptions.map((grind, idx) => (
+                        {grindsToDisplay.map((grind, idx) => (
                           <span
                             key={idx}
                             className="px-2 py-0.5 rounded-md bg-stone-800 text-stone-300 text-[10px] border border-stone-700/60 font-medium"

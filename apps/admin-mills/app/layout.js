@@ -36,6 +36,8 @@ export const viewport = {
 };
 
 
+import { AuthProvider } from "@/lib/authContext";
+
 export default function RootLayout({ children }) {
   return (
     <html
@@ -43,7 +45,9 @@ export default function RootLayout({ children }) {
       className={`${outfit.variable} h-full antialiased font-sans`}
     >
       <body className="min-h-full flex flex-col bg-stone-900 text-stone-100 selection:bg-amber-500 selection:text-stone-950">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

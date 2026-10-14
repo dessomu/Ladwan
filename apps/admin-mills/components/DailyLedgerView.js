@@ -6,8 +6,15 @@ import {
   Banknote,
   CheckCircle2,
 } from "lucide-react";
+import { formatCustomerName, formatOrderItemName } from "../lib/langUtils";
 
-export default function DailyLedgerView({ metrics, orders, lang = "hi", t }) {
+export default function DailyLedgerView({
+  metrics,
+  orders,
+  products = [],
+  lang = "hi",
+  t,
+}) {
   const completedOrders = orders.filter((o) => o.status === "delivered");
   const onlineOrders = orders.filter((o) => o.isPaid);
   const codOrders = orders.filter((o) => !o.isPaid && o.status !== "cancelled");
@@ -103,14 +110,13 @@ export default function DailyLedgerView({ metrics, orders, lang = "hi", t }) {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold text-amber-300">#{ord.tokenNumber}</span>
-                  <span className="font-semibold text-white">{ord.customer.name}</span>
+                  <span className="font-semibold text-white">
+                    {formatCustomerName(ord.customer, lang)}
+                  </span>
                 </div>
                 <p className="text-stone-400 text-[11px] mt-0.5">
                   {ord.items
-                    .map(
-                      (i) =>
-                        `${lang === "en" && i.englishName ? i.englishName : i.name} (${i.weight})`
-                    )
+                    .map((i) => `${formatOrderItemName(i, lang, products)} (${i.weight})`)
                     .join(", ")}
                 </p>
               </div>

@@ -1,0 +1,18 @@
+{
+  "name": "@ladwan/firebase",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Centralized Firebase configuration, Auth, Firestore helpers, schemas, and seed data shared across all Ladwan apps",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./auth": "./auth.js",
+    "./firestore": "./firestore.js",
+    "./schemas": "./schemas.js",
+    "./seed": "./seed.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "firebase": "^13.0.0"
+  }
+}

@@ -5,8 +5,17 @@
 // 1. Live Firebase Firestore (when env vars are present)
 // 2. Interactive LocalStorage / In-Memory Demo Store (pre-seeded with authentic Chakki data)
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { isFirebaseConfigured, db } from "./firebase";
+import {
+  saveMill,
+  listenMill,
+  saveProduct,
+  listenProducts,
+  listenOrders,
+  updateOrderStatus as firestoreUpdateOrderStatus,
+  saveOrder,
+} from "@ladwan/firebase/firestore";
 import {
   INITIAL_MILL,
   INITIAL_PRODUCTS,
@@ -14,18 +23,16 @@ import {
   INITIAL_METRICS,
 } from "./seedData";
 import { soundManager } from "./audioAlert";
-
 import { translations } from "./translations";
 
 const STORAGE_KEYS = {
-  MILL: "ladwan_admin_mill_v1",
-  PRODUCTS: "ladwan_admin_products_v1",
-  ORDERS: "ladwan_admin_orders_v1",
+  MILL: "ladwan_admin_mill_v2",
+  PRODUCTS: "ladwan_admin_products_v2",
+  ORDERS: "ladwan_admin_orders_v2",
   LANG: "ladwan_admin_lang_v1",
 };
 
 const UPDATE_EVENT_NAME = "ladwan:admin-store-updated";
-
 
 // Helper for safe client-side localStorage access
 function getStoredJson(key, fallback) {
@@ -53,6 +60,26 @@ function setStoredJson(key, data) {
   }
 }
 
+// Helper to calculate metrics from any orders array
+function calculateMetrics(orders = []) {
+  const pending = orders.filter((o) => o.status === "pending").length;
+  const grinding = orders.filter((o) => o.status === "grinding" || o.status === "in_milling").length;
+  const packed = orders.filter((o) => o.status === "packed").length;
+  const delivered = orders.filter((o) => o.status === "delivered");
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+  return {
+    todayTotalKg: 145 + Math.max(0, orders.length - INITIAL_ORDERS.length) * 5,
+    todayOrdersCount: orders.length,
+    todayGrossRevenue: totalRevenue,
+    pendingOrdersCount: pending,
+    activeGrindingCount: grinding,
+    readyToDispatchCount: packed,
+    completedOrdersCount: delivered.length,
+    averagePrepMinutes: 18,
+  };
+}
+
 // -------------------------------------------------------------
 // CORE REPOSITORY API (Unified interface for Mill, Products & Orders)
 // -------------------------------------------------------------
@@ -66,49 +93,87 @@ export const millRepository = {
     return getStoredJson(STORAGE_KEYS.MILL, INITIAL_MILL);
   },
 
-  updateMill(updates) {
+  updateMill(updates, millId) {
     const current = this.getMill();
     const updated = {
       ...current,
       ...updates,
+      id: millId || current.id || INITIAL_MILL.id,
       updatedAt: new Date().toISOString(),
     };
     setStoredJson(STORAGE_KEYS.MILL, updated);
     soundManager.playSuccessTone();
+
+    // Live Firestore sync
+    if (isFirebaseConfigured) {
+      saveMill(updated).catch((err) => console.error("[Firestore] saveMill error:", err));
+    }
+
     return updated;
   },
 
-  toggleStoreStatus() {
+  toggleStoreStatus(millId) {
     const current = this.getMill();
     const nextIsOpen = !current.isOpen;
-    return this.updateMill({
-      isOpen: nextIsOpen,
-      acceptingOrders: nextIsOpen,
-      statusReason: nextIsOpen
-        ? "चक्की चालू है • ताजा पिसाई जारी है"
-        : "चक्की अभी बंद है (Currently Closed)",
-    });
+    return this.updateMill(
+      {
+        isOpen: nextIsOpen,
+        acceptingOrders: nextIsOpen,
+        statusReason: nextIsOpen
+          ? "चक्की चालू है • ताजा पिसाई जारी है"
+          : "चक्की अभी बंद है (Currently Closed)",
+      },
+      millId
+    );
   },
 
   getProducts() {
-    return getStoredJson(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    const stored = getStoredJson(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    // Smart merge to ensure all items have bilingual fields
+    return stored.map((p) => {
+      const initial = INITIAL_PRODUCTS.find((init) => init.id === p.id);
+      if (initial) {
+        return {
+          ...p,
+          englishDescription: p.englishDescription || initial.englishDescription,
+          englishBadge: p.englishBadge || initial.englishBadge,
+          englishGrindOptions: p.englishGrindOptions || initial.englishGrindOptions,
+        };
+      }
+      return p;
+    });
   },
 
-  updateProduct(id, updates) {
+  updateProduct(id, updates, millId = "mill_shree_ram_01") {
     const products = this.getProducts();
-    const updated = products.map((item) =>
-      item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
-    );
+    let updatedItem = null;
+    const updated = products.map((item) => {
+      if (item.id === id) {
+        updatedItem = { ...item, ...updates, updatedAt: new Date().toISOString() };
+        return updatedItem;
+      }
+      return item;
+    });
+
     setStoredJson(STORAGE_KEYS.PRODUCTS, updated);
     soundManager.playSuccessTone();
+
+    // Live Firestore sync
+    if (isFirebaseConfigured && updatedItem) {
+      saveProduct(millId, updatedItem).catch((err) =>
+        console.error("[Firestore] saveProduct error:", err)
+      );
+    }
+
     return updated;
   },
 
-  updateProductPrice(id, weightKey, newPrice) {
+  updateProductPrice(id, weightKey, newPrice, millId = "mill_shree_ram_01") {
     const products = this.getProducts();
+    let updatedItem = null;
     const updated = products.map((item) => {
       if (item.id === id) {
-        return {
+        updatedItem = {
           ...item,
           prices: {
             ...item.prices,
@@ -116,57 +181,112 @@ export const millRepository = {
           },
           updatedAt: new Date().toISOString(),
         };
+        return updatedItem;
       }
       return item;
     });
+
     setStoredJson(STORAGE_KEYS.PRODUCTS, updated);
     soundManager.playSuccessTone();
+
+    // Live Firestore sync
+    if (isFirebaseConfigured && updatedItem) {
+      saveProduct(millId, updatedItem).catch((err) =>
+        console.error("[Firestore] saveProduct error:", err)
+      );
+    }
+
     return updated;
   },
 
-  toggleProductStock(id) {
+  toggleProductStock(id, millId = "mill_shree_ram_01") {
     const products = this.getProducts();
+    let updatedItem = null;
     const updated = products.map((item) => {
       if (item.id === id) {
-        return {
+        updatedItem = {
           ...item,
           isAvailable: !item.isAvailable,
           updatedAt: new Date().toISOString(),
         };
+        return updatedItem;
       }
       return item;
     });
+
     setStoredJson(STORAGE_KEYS.PRODUCTS, updated);
     soundManager.playSuccessTone();
+
+    // Live Firestore sync
+    if (isFirebaseConfigured && updatedItem) {
+      saveProduct(millId, updatedItem).catch((err) =>
+        console.error("[Firestore] saveProduct error:", err)
+      );
+    }
+
     return updated;
   },
 
-  addProduct(newProduct) {
+  addProduct(newProduct, millId = "mill_shree_ram_01") {
     const products = this.getProducts();
     const product = {
       id: `prod_${Date.now()}`,
       badge: "नया विकल्प (New)",
       isAvailable: true,
       stockKg: 100,
-      imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80",
+      imageUrl:
+        "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80",
       ...newProduct,
       updatedAt: new Date().toISOString(),
     };
     const updated = [product, ...products];
     setStoredJson(STORAGE_KEYS.PRODUCTS, updated);
     soundManager.playSuccessTone();
+
+    // Live Firestore sync
+    if (isFirebaseConfigured) {
+      saveProduct(millId, product).catch((err) =>
+        console.error("[Firestore] addProduct error:", err)
+      );
+    }
+
     return product;
   },
 
   getOrders() {
-    return getStoredJson(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+    const stored = getStoredJson(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+    return stored.map((o) => {
+      const initial = INITIAL_ORDERS.find((init) => init.id === o.id);
+      if (initial) {
+        return {
+          ...o,
+          customer: {
+            ...o.customer,
+            englishName: o.customer?.englishName || initial.customer?.englishName,
+            englishAddress: o.customer?.englishAddress || initial.customer?.englishAddress,
+          },
+          items: (o.items || []).map((item, idx) => {
+            const initialItem = initial.items?.[idx];
+            return {
+              ...item,
+              englishName: item.englishName || initialItem?.englishName,
+              englishGrind: item.englishGrind || initialItem?.englishGrind,
+            };
+          }),
+          englishSpecialInstructions:
+            o.englishSpecialInstructions || initial.englishSpecialInstructions,
+        };
+      }
+      return o;
+    });
   },
 
-  updateOrderStatus(orderId, newStatus) {
+  updateOrderStatus(orderId, newStatus, millId = "mill_shree_ram_01") {
     const orders = this.getOrders();
+    let orderUpdates = null;
     const updated = orders.map((order) => {
       if (order.id === orderId) {
-        const orderUpdates = {
+        orderUpdates = {
           ...order,
           status: newStatus,
           updatedAt: new Date().toISOString(),
@@ -181,13 +301,23 @@ export const millRepository = {
       }
       return order;
     });
+
     setStoredJson(STORAGE_KEYS.ORDERS, updated);
     soundManager.playSuccessTone();
+
+    // Live Firestore sync
+    if (isFirebaseConfigured && orderUpdates) {
+      firestoreUpdateOrderStatus(orderId, newStatus, {
+        ...(orderUpdates.grindingStartedAt ? { grindingStartedAt: orderUpdates.grindingStartedAt } : {}),
+        ...(orderUpdates.deliveredAt ? { deliveredAt: orderUpdates.deliveredAt } : {}),
+      }).catch((err) => console.error("[Firestore] updateOrderStatus error:", err));
+    }
+
     return updated;
   },
 
   // Simulate an incoming live customer order (triggers audio chime!)
-  simulateIncomingOrder() {
+  simulateIncomingOrder(millId = "mill_shree_ram_01") {
     const orders = this.getOrders();
     const sampleTokens = ["43", "44", "45", "46"];
     const randomToken = sampleTokens[Math.floor(Math.random() * sampleTokens.length)];
@@ -199,18 +329,23 @@ export const millRepository = {
       createdAt: new Date().toISOString(),
       status: "pending",
       urgency: "high",
+      millId: millId || "mill_shree_ram_01",
       customer: {
-        name: "अमित कुमार (Amit Kumar)",
+        name: "अमित कुमार",
+        englishName: "Amit Kumar",
         phone: "+91 98711 55667",
         address: "मकान नं. 56, गली 4, रेलवे रोड कॉलोनी",
+        englishAddress: "House No. 56, Street 4, Railway Road Colony",
         distanceKm: "1.2 km",
       },
       items: [
         {
           productId: "prod_sharbati_01",
           name: "MP सिहोर शरबती गेहूं आटा",
+          englishName: "MP Sehore Sharbati Wheat Atta",
           weight: "5kg",
-          grind: "बारीक (Fine / Roti)",
+          grind: "बारीक (रोटी)",
+          englishGrind: "Fine (Roti)",
           unitPrice: 235,
           quantity: 1,
         },
@@ -219,34 +354,25 @@ export const millRepository = {
       paymentMethod: "Online UPI (Paid)",
       isPaid: true,
       specialInstructions: "चक्की से गरम-गरम आटा चाहिए, जल्दी भेजें।",
+      englishSpecialInstructions: "Need freshly milled warm flour, please dispatch quickly.",
       prepTimeMinutes: 15,
     };
 
     const updated = [newOrder, ...orders];
     setStoredJson(STORAGE_KEYS.ORDERS, updated);
     soundManager.playOrderBell();
+
+    // Live Firestore sync
+    if (isFirebaseConfigured) {
+      saveOrder(newOrder).catch((err) => console.error("[Firestore] saveOrder error:", err));
+    }
+
     return newOrder;
   },
 
   getMetrics() {
     const orders = this.getOrders();
-    const todayOrders = orders;
-    const pending = orders.filter((o) => o.status === "pending").length;
-    const grinding = orders.filter((o) => o.status === "grinding").length;
-    const packed = orders.filter((o) => o.status === "packed").length;
-    const delivered = orders.filter((o) => o.status === "delivered");
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-
-    return {
-      todayTotalKg: 145 + (orders.length - INITIAL_ORDERS.length) * 5,
-      todayOrdersCount: todayOrders.length,
-      todayGrossRevenue: totalRevenue,
-      pendingOrdersCount: pending,
-      activeGrindingCount: grinding,
-      readyToDispatchCount: packed,
-      completedOrdersCount: delivered.length,
-      averagePrepMinutes: 18,
-    };
+    return calculateMetrics(orders);
   },
 
   getLang() {
@@ -274,9 +400,9 @@ export const millRepository = {
 };
 
 // -------------------------------------------------------------
-// REACTIVE CUSTOM HOOK: useChakkiStore()
+// REACTIVE CUSTOM HOOK: useChakkiStore(millId)
 // -------------------------------------------------------------
-export function useChakkiStore() {
+export function useChakkiStore(activeMillId) {
   const [mill, setMill] = useState(INITIAL_MILL);
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [orders, setOrders] = useState(INITIAL_ORDERS);
@@ -284,7 +410,11 @@ export function useChakkiStore() {
   const [lang, setLangState] = useState("hi");
   const [isClient, setIsClient] = useState(false);
 
-  const refreshAll = () => {
+  const previousOrderIdsRef = useRef(new Set(INITIAL_ORDERS.map((o) => o.id)));
+
+  const effectiveMillId = activeMillId || mill?.id || "mill_shree_ram_01";
+
+  const refreshFromLocalStorage = () => {
     setMill(millRepository.getMill());
     setProducts(millRepository.getProducts());
     setOrders(millRepository.getOrders());
@@ -294,20 +424,68 @@ export function useChakkiStore() {
 
   useEffect(() => {
     setIsClient(true);
-    refreshAll();
+    refreshFromLocalStorage();
 
+    // 1. Local / Custom Event Listeners (Offline & Demo Mode)
     const handleUpdate = () => {
-      refreshAll();
+      refreshFromLocalStorage();
     };
 
     window.addEventListener(UPDATE_EVENT_NAME, handleUpdate);
     window.addEventListener("storage", handleUpdate);
 
+    // 2. Real-time Cloud Firestore Listeners (when Live Firebase is active)
+    let unsubMill = null;
+    let unsubProducts = null;
+    let unsubOrders = null;
+
+    if (isFirebaseConfigured && effectiveMillId) {
+      console.log(`[Ladwan Store] ⚡ Attaching live Firestore listeners for mill: ${effectiveMillId}`);
+
+      // Listen to Mill document changes
+      unsubMill = listenMill(effectiveMillId, (cloudMill) => {
+        if (cloudMill) {
+          setMill(cloudMill);
+          setStoredJson(STORAGE_KEYS.MILL, cloudMill);
+        }
+      });
+
+      // Listen to Products subcollection
+      unsubProducts = listenProducts(effectiveMillId, (cloudProducts) => {
+        if (cloudProducts && cloudProducts.length > 0) {
+          setProducts(cloudProducts);
+          setStoredJson(STORAGE_KEYS.PRODUCTS, cloudProducts);
+        }
+      });
+
+      // Listen to Orders collection for this mill
+      unsubOrders = listenOrders(effectiveMillId, (cloudOrders) => {
+        if (cloudOrders) {
+          // Detect new incoming order to trigger audio chime
+          const prevIds = previousOrderIdsRef.current;
+          const hasNewPending = cloudOrders.some(
+            (o) => !prevIds.has(o.id) && o.status === "pending"
+          );
+          if (hasNewPending) {
+            soundManager.playOrderBell();
+          }
+
+          previousOrderIdsRef.current = new Set(cloudOrders.map((o) => o.id));
+          setOrders(cloudOrders);
+          setMetrics(calculateMetrics(cloudOrders));
+          setStoredJson(STORAGE_KEYS.ORDERS, cloudOrders);
+        }
+      });
+    }
+
     return () => {
       window.removeEventListener(UPDATE_EVENT_NAME, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
+      if (typeof unsubMill === "function") unsubMill();
+      if (typeof unsubProducts === "function") unsubProducts();
+      if (typeof unsubOrders === "function") unsubOrders();
     };
-  }, []);
+  }, [effectiveMillId]);
 
   const currentLang = lang || "hi";
   const t = translations[currentLang] || translations.hi;
@@ -323,17 +501,18 @@ export function useChakkiStore() {
     t,
     setLang: (newLang) => millRepository.setLang(newLang),
     toggleLang: () => millRepository.setLang(currentLang === "hi" ? "en" : "hi"),
-    // Actions
-    toggleStoreStatus: () => millRepository.toggleStoreStatus(),
-    updateMill: (updates) => millRepository.updateMill(updates),
-    updateProduct: (id, updates) => millRepository.updateProduct(id, updates),
-    updateProductPrice: (id, weight, price) => millRepository.updateProductPrice(id, weight, price),
-    toggleProductStock: (id) => millRepository.toggleProductStock(id),
-    addProduct: (prod) => millRepository.addProduct(prod),
-    updateOrderStatus: (id, status) => millRepository.updateOrderStatus(id, status),
-    simulateIncomingOrder: () => millRepository.simulateIncomingOrder(),
+    // Actions wired with effectiveMillId
+    toggleStoreStatus: () => millRepository.toggleStoreStatus(effectiveMillId),
+    updateMill: (updates) => millRepository.updateMill(updates, effectiveMillId),
+    updateProduct: (id, updates) => millRepository.updateProduct(id, updates, effectiveMillId),
+    updateProductPrice: (id, weight, price) =>
+      millRepository.updateProductPrice(id, weight, price, effectiveMillId),
+    toggleProductStock: (id) => millRepository.toggleProductStock(id, effectiveMillId),
+    addProduct: (prod) => millRepository.addProduct(prod, effectiveMillId),
+    updateOrderStatus: (id, status) =>
+      millRepository.updateOrderStatus(id, status, effectiveMillId),
+    simulateIncomingOrder: () => millRepository.simulateIncomingOrder(effectiveMillId),
     resetAllData: () => millRepository.resetAllData(),
     playChime: () => soundManager.playOrderBell(),
   };
 }
-

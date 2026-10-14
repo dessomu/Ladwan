@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../lib/authContext";
 import { useChakkiStore } from "../lib/store";
 import Header from "../components/Header";
 import MetricsTicker from "../components/MetricsTicker";
@@ -14,6 +16,9 @@ import PwaManager from "../components/PwaManager";
 import { Tag, Bell, BookOpen, Store, Wheat, Languages } from "lucide-react";
 
 export default function ChakkiAdminHome() {
+  const router = useRouter();
+  const { user, loading: authLoading, logout } = useAuth();
+
   const {
     isClient,
     isFirebase,
@@ -34,13 +39,20 @@ export default function ChakkiAdminHome() {
     simulateIncomingOrder,
     resetAllData,
     playChime,
-  } = useChakkiStore();
+  } = useChakkiStore(user?.millId);
 
   const [activeTab, setActiveTab] = useState("rates"); // "rates" | "orders" | "ledger" | "profile"
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  if (!isClient) {
+  // Authentication barrier: redirect unauthenticated users to /login
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login");
+    }
+  }, [user, authLoading, router]);
+
+  if (!isClient || authLoading) {
     return (
       <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center text-amber-400 gap-3">
         <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center animate-spin">
@@ -51,6 +63,10 @@ export default function ChakkiAdminHome() {
         </p>
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // Redirecting to /login
   }
 
   const activeOrdersCount = orders.filter((o) =>
@@ -65,6 +81,11 @@ export default function ChakkiAdminHome() {
       {/* 1. Header with Master Duty Toggle and Language Switch */}
       <Header
         mill={mill}
+        user={user}
+        onLogout={async () => {
+          await logout();
+          router.push("/login");
+        }}
         onToggleStatus={toggleStoreStatus}
         onUpdateStatusReason={(reason, open) => {
           updateMill({
@@ -159,6 +180,7 @@ export default function ChakkiAdminHome() {
         {activeTab === "orders" && (
           <LiveOrdersView
             orders={orders}
+            products={products}
             onUpdateStatus={updateOrderStatus}
             onSimulateOrder={simulateIncomingOrder}
             lang={lang}
@@ -170,6 +192,7 @@ export default function ChakkiAdminHome() {
           <DailyLedgerView
             metrics={metrics}
             orders={orders}
+            products={products}
             lang={lang}
             t={t}
           />

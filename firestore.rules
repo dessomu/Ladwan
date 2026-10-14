@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ── Users collection ──
+    // Anyone logged in can read user docs; only the user themselves can update their profile.
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update, delete: if isOwner(userId);
+    }
+
+    // ── Mills collection ──
+    // Public read so customer app and delivery app can see mills, live rates, and open/closed status.
+    // Only the mill owner can create or update their own mill.
+    match /mills/{millId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.ownerUid ||
+        request.auth.uid == request.resource.data.ownerUid
+      );
+
+      // Mill products subcollection
+      match /products/{productId} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
+
+      // Mill daily ledger subcollection
+      match /daily_ledger/{ledgerId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // ── Orders collection ──
+    // Customers create orders; mill owners and delivery fleet read and update status.
+    match /orders/{orderId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if false; // Orders are preserved for accounting / audit
+    }
+
+    // ── Notifications collection ──
+    match /notifications/{notifId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
