@@ -11,6 +11,7 @@ import LiveOrdersView from "../components/LiveOrdersView";
 import DailyLedgerView from "../components/DailyLedgerView";
 import AddProductModal from "../components/AddProductModal";
 import MillProfileModal from "../components/MillProfileModal";
+import MasterCatalogModal from "../components/MasterCatalogModal";
 import BottomNavigation from "../components/BottomNavigation";
 import PwaManager from "../components/PwaManager";
 import { Tag, Bell, BookOpen, Store, Wheat, Languages } from "lucide-react";
@@ -35,6 +36,10 @@ export default function ChakkiAdminHome() {
     updateProductPrice,
     toggleProductStock,
     addProduct,
+    initializeInventory,
+    updateStockKg,
+    deleteInventoryItem,
+    masterCatalog,
     updateOrderStatus,
     simulateIncomingOrder,
     resetAllData,
@@ -44,6 +49,7 @@ export default function ChakkiAdminHome() {
   const [activeTab, setActiveTab] = useState("rates"); // "rates" | "orders" | "ledger" | "profile"
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMasterCatalogOpen, setIsMasterCatalogOpen] = useState(false);
 
   // Authentication barrier: redirect unauthenticated users to /login
   useEffect(() => {
@@ -171,7 +177,10 @@ export default function ChakkiAdminHome() {
             products={products}
             onUpdatePrice={updateProductPrice}
             onToggleStock={toggleProductStock}
+            onUpdateStockKg={updateStockKg}
+            onDeleteProduct={deleteInventoryItem}
             onOpenAddModal={() => setIsAddProductOpen(true)}
+            onOpenMasterCatalog={() => setIsMasterCatalogOpen(true)}
             lang={lang}
             t={t}
           />
@@ -272,6 +281,18 @@ export default function ChakkiAdminHome() {
         onSelectLang={setLang}
         t={t}
       />
+
+      {isMasterCatalogOpen && (
+        <MasterCatalogModal
+          isOpen={isMasterCatalogOpen}
+          onClose={() => setIsMasterCatalogOpen(false)}
+          masterCatalog={masterCatalog}
+          currentProducts={products}
+          onSaveInventory={(items) => initializeInventory(items)}
+          lang={lang}
+          t={t}
+        />
+      )}
     </div>
   );
 }

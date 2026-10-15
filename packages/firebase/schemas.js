@@ -11,7 +11,8 @@ export const COLLECTIONS = {
 
 // ── Firestore Subcollection Names (under mills/{millId}/) ───────────────────
 export const SUBCOLLECTIONS = {
-  PRODUCTS: "products",
+  INVENTORY: "inventory",
+  PRODUCTS: "inventory", // aliased to inventory for backward compatibility
   DAILY_LEDGER: "daily_ledger",
 };
 

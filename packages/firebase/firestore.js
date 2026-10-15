@@ -14,6 +14,8 @@ import {
   orderBy,
   updateDoc,
   serverTimestamp,
+  writeBatch,
+  deleteDoc,
 } from "firebase/firestore";
 import { COLLECTIONS, SUBCOLLECTIONS } from "./schemas.js";
 
@@ -65,44 +67,133 @@ export function listenMill(millId, onUpdate) {
   });
 }
 
-// ── PRODUCTS ─────────────────────────────────────────────────────────────────
+// ── INVENTORY (mills/{millId}/inventory/{productId}) ─────────────────────────
 
 /**
- * Save (merge) a single product in a mill's products subcollection.
+ * Save (merge) a single product in a mill's live inventory subcollection.
+ * Path: mills/{millId}/inventory/{product.id}
  * @param {string} millId
- * @param {object} product - Product data, must contain `id` field.
+ * @param {object} product - Product/grain data, must contain `id` field.
  */
-export async function saveProduct(millId, product) {
+export async function saveInventoryItem(millId, product) {
   if (!isFirebaseConfigured || !db) return null;
   try {
     await setDoc(
-      doc(db, COLLECTIONS.MILLS, millId, SUBCOLLECTIONS.PRODUCTS, product.id),
-      { ...product, millId, updatedAt: new Date().toISOString() },
+      doc(db, COLLECTIONS.MILLS, millId, SUBCOLLECTIONS.INVENTORY, product.id),
+      {
+        ...product,
+        millId,
+        isAvailable: product.isAvailable !== false && Number(product.stockKg || 0) > 0,
+        updatedAt: new Date().toISOString(),
+      },
       { merge: true }
     );
     return true;
   } catch (err) {
-    console.error("[Firestore] saveProduct error:", err);
+    console.warn("[Firestore] saveInventoryItem (deploy firestore.rules to enable):", err.message);
+    return false;
+  }
+}
+
+// Backward-compatible alias
+export const saveProduct = saveInventoryItem;
+
+/**
+ * Real-time listener for a mill's active inventory list.
+ * Path: mills/{millId}/inventory
+ * @param {string} millId
+ * @param {function} onUpdate - Called with array of active inventory items.
+ * @returns {function} Unsubscribe function.
+ */
+export function listenInventory(millId, onUpdate) {
+  if (!isFirebaseConfigured || !db) return () => {};
+  return onSnapshot(
+    collection(db, COLLECTIONS.MILLS, millId, SUBCOLLECTIONS.INVENTORY),
+    (snapshot) => {
+      const items = [];
+      snapshot.forEach((d) => items.push({ id: d.id, ...d.data() }));
+      onUpdate(items);
+    },
+    (err) => {
+      console.warn("[Firestore] listenInventory (deploy firestore.rules to enable):", err.message);
+    }
+  );
+}
+
+// Backward-compatible alias
+export const listenProducts = listenInventory;
+
+/**
+ * Initialize / Batch register multiple selected items from Master Catalog.
+ * Writes directly to mills/{millId}/inventory/{productId}.
+ * @param {string} millId
+ * @param {Array<object>} items - Array of product objects with assigned stockKg & prices.
+ */
+export async function initializeMillInventory(millId, items = []) {
+  if (!isFirebaseConfigured || !db || items.length === 0) return false;
+  try {
+    const batch = writeBatch(db);
+    const now = new Date().toISOString();
+
+    for (const item of items) {
+      const ref = doc(db, COLLECTIONS.MILLS, millId, SUBCOLLECTIONS.INVENTORY, item.id);
+      batch.set(
+        ref,
+        {
+          ...item,
+          millId,
+          isAvailable: item.isAvailable !== false && Number(item.stockKg || 0) > 0,
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+    }
+
+    await batch.commit();
+    return true;
+  } catch (err) {
+    console.warn("[Firestore] initializeMillInventory (deploy firestore.rules to enable):", err.message);
     return false;
   }
 }
 
 /**
- * Real-time listener for a mill's product list.
+ * Quick update for live stock quantity in KG.
  * @param {string} millId
- * @param {function} onUpdate - Called with array of products.
- * @returns {function} Unsubscribe function.
+ * @param {string} productId
+ * @param {number} newStockKg
  */
-export function listenProducts(millId, onUpdate) {
-  if (!isFirebaseConfigured || !db) return () => {};
-  return onSnapshot(
-    collection(db, COLLECTIONS.MILLS, millId, SUBCOLLECTIONS.PRODUCTS),
-    (snapshot) => {
-      const products = [];
-      snapshot.forEach((d) => products.push({ id: d.id, ...d.data() }));
-      onUpdate(products);
-    }
-  );
+export async function updateInventoryStock(millId, productId, newStockKg) {
+  if (!isFirebaseConfigured || !db) return false;
+  try {
+    const stock = Math.max(0, Number(newStockKg) || 0);
+    const ref = doc(db, COLLECTIONS.MILLS, millId, SUBCOLLECTIONS.INVENTORY, productId);
+    await updateDoc(ref, {
+      stockKg: stock,
+      isAvailable: stock > 0,
+      updatedAt: new Date().toISOString(),
+    });
+    return true;
+  } catch (err) {
+    console.warn("[Firestore] updateInventoryStock (deploy firestore.rules to enable):", err.message);
+    return false;
+  }
+}
+
+/**
+ * Delete / unlist an item from mill's live inventory.
+ * @param {string} millId
+ * @param {string} productId
+ */
+export async function deleteInventoryItem(millId, productId) {
+  if (!isFirebaseConfigured || !db) return false;
+  try {
+    await deleteDoc(doc(db, COLLECTIONS.MILLS, millId, SUBCOLLECTIONS.INVENTORY, productId));
+    return true;
+  } catch (err) {
+    console.warn("[Firestore] deleteInventoryItem (deploy firestore.rules to enable):", err.message);
+    return false;
+  }
 }
 
 // ── ORDERS ───────────────────────────────────────────────────────────────────
@@ -118,14 +209,21 @@ export function listenOrders(millId, onUpdate) {
   if (!isFirebaseConfigured || !db) return () => {};
   const q = query(
     collection(db, COLLECTIONS.ORDERS),
-    where("millId", "==", millId),
-    orderBy("createdAt", "desc")
+    where("millId", "==", millId)
   );
-  return onSnapshot(q, (snapshot) => {
-    const orders = [];
-    snapshot.forEach((d) => orders.push({ id: d.id, ...d.data() }));
-    onUpdate(orders);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const orders = [];
+      snapshot.forEach((d) => orders.push({ id: d.id, ...d.data() }));
+      // Sort client-side by createdAt descending so no composite index is needed in Firestore
+      orders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      onUpdate(orders);
+    },
+    (err) => {
+      console.warn("[Firestore] listenOrders (deploy firestore.rules in Firebase Console):", err.message);
+    }
+  );
 }
 
 /**
@@ -144,7 +242,7 @@ export async function updateOrderStatus(orderId, status, extra = {}) {
     });
     return true;
   } catch (err) {
-    console.error("[Firestore] updateOrderStatus error:", err);
+    console.warn("[Firestore] updateOrderStatus (deploy firestore.rules to enable):", err.message);
     return false;
   }
 }
@@ -163,7 +261,7 @@ export async function saveOrder(order) {
     );
     return true;
   } catch (err) {
-    console.error("[Firestore] saveOrder error:", err);
+    console.warn("[Firestore] saveOrder (deploy firestore.rules to enable):", err.message);
     return false;
   }
 }

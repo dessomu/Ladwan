@@ -196,8 +196,7 @@ export async function registerMillOwner(data) {
     initialProducts = [],
   } = data;
 
-  const productsToSeed =
-    initialProducts && initialProducts.length > 0 ? initialProducts : INITIAL_PRODUCTS;
+  const productsToSeed = initialProducts || [];
 
   const newMillId = "mill_" + Date.now().toString(36);
   const newMillObj = {

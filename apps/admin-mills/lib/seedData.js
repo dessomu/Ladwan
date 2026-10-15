@@ -4,4 +4,5 @@ export {
   INITIAL_PRODUCTS,
   INITIAL_ORDERS,
   INITIAL_METRICS,
+  MASTER_CATALOG,
 } from "@ladwan/firebase/seed";

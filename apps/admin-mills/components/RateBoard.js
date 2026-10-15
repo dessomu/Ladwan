@@ -9,9 +9,10 @@ import {
   Check,
   Edit2,
   X,
-  ToggleLeft,
-  ToggleRight,
   Power,
+  Scale,
+  ClipboardList,
+  Trash2,
 } from "lucide-react";
 import {
   formatProductDescription,
@@ -20,20 +21,26 @@ import {
 } from "../lib/langUtils";
 
 export default function RateBoard({
-  products,
+  products = [],
   onUpdatePrice,
   onToggleStock,
+  onUpdateStockKg,
+  onDeleteProduct,
   onOpenAddModal,
+  onOpenMasterCatalog,
   lang = "hi",
   t,
 }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Track which product and weight tier is currently being edited:
-  // editingItem: `${productId}_${weightKey}` or null
+  // Price editing state: `${productId}_${weightKey}`
   const [editingItem, setEditingItem] = useState(null);
   const [draftPrice, setDraftPrice] = useState("");
+
+  // Direct KG stock editing state: `${productId}`
+  const [editingStockId, setEditingStockId] = useState(null);
+  const [draftStockKg, setDraftStockKg] = useState("");
 
   const categories = [
     { id: "all", label: t.allCategories },
@@ -48,13 +55,13 @@ export default function RateBoard({
     const matchesCat =
       selectedCategory === "all" || item.category === selectedCategory;
     const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.englishName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.englishName && item.englishName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCat && matchesSearch;
   });
 
-  const handleStartEdit = (productId, weightKey, currentPrice) => {
+  const handleStartPriceEdit = (productId, weightKey, currentPrice) => {
     setEditingItem(`${productId}_${weightKey}`);
     setDraftPrice(String(currentPrice));
   };
@@ -68,10 +75,62 @@ export default function RateBoard({
     setDraftPrice("");
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelPriceEdit = () => {
     setEditingItem(null);
     setDraftPrice("");
   };
+
+  const handleStartStockEdit = (product) => {
+    setEditingStockId(product.id);
+    setDraftStockKg(String(product.stockKg ?? 0));
+  };
+
+  const handleSaveStock = (productId) => {
+    const num = Math.max(0, Number(draftStockKg) || 0);
+    if (onUpdateStockKg) {
+      onUpdateStockKg(productId, num);
+    }
+    setEditingStockId(null);
+    setDraftStockKg("");
+  };
+
+  const handleQuickStockDelta = (productId, currentStock, delta) => {
+    const next = Math.max(0, (Number(currentStock) || 0) + delta);
+    if (onUpdateStockKg) {
+      onUpdateStockKg(productId, next);
+    }
+  };
+
+  // If mill has zero active products (Fresh Onboarding State)
+  if (products.length === 0) {
+    return (
+      <div className="bg-stone-900/90 border border-amber-500/30 rounded-3xl p-6 sm:p-10 text-center max-w-2xl mx-auto shadow-2xl space-y-6">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+          <Wheat className="w-8 h-8" />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-xl sm:text-2xl font-black text-white">
+            {t.emptyActiveInventoryTitle}
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-400 max-w-md mx-auto leading-relaxed">
+            {t.emptyActiveInventoryDesc}
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={onOpenMasterCatalog}
+            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-sm sm:text-base flex items-center justify-center gap-2.5 mx-auto shadow-xl shadow-amber-950/40 active:scale-95 transition-all"
+          >
+            <ClipboardList className="w-5 h-5 stroke-[2.5]" />
+            <span>{t.openCatalogSetupBtn}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -96,13 +155,28 @@ export default function RateBoard({
           )}
         </div>
 
-        <button
-          onClick={onOpenAddModal}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-900/30 transition-all active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t.addNewItem}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Master Catalog Onboarding/Expansion Button */}
+          <button
+            type="button"
+            onClick={onOpenMasterCatalog}
+            className="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm"
+          >
+            <ClipboardList className="w-4 h-4 text-amber-400" />
+            <span>{t.masterCatalogBtn}</span>
+          </button>
+
+          {/* Add Custom Item Button */}
+          <button
+            type="button"
+            onClick={onOpenAddModal}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-amber-900/30 transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">{t.addNewItem}</span>
+            <span className="sm:hidden">{t.addNewItem.split(" ")[0]}</span>
+          </button>
+        </div>
       </div>
 
       {/* Category Filter Pills */}
@@ -136,7 +210,10 @@ export default function RateBoard({
       {/* Product Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
         {filteredProducts.map((product) => {
-          const isAvailable = product.isAvailable;
+          const isAvailable = product.isAvailable !== false && Number(product.stockKg || 0) > 0;
+          const currentStock = Number(product.stockKg ?? 0);
+          const isEditingStock = editingStockId === product.id;
+
           const displayTitle =
             lang === "en" && product.englishName ? product.englishName : product.name;
           const subtitle = lang === "en" ? product.name : (product.englishName || "");
@@ -155,10 +232,10 @@ export default function RateBoard({
               className={`relative bg-stone-900/90 rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col justify-between ${
                 isAvailable
                   ? "border-stone-800 hover:border-amber-500/40 shadow-sm"
-                  : "border-red-900/40 bg-stone-950/80 opacity-85"
+                  : "border-red-900/50 bg-stone-950/90 opacity-90"
               }`}
             >
-              {/* Card Top: Image, Titles & Explicit Stock Toggle Button */}
+              {/* Card Top: Image, Titles & Stock Switch */}
               <div className="p-3.5 sm:p-4">
                 <div className="flex items-start gap-3">
                   {/* Grain Image */}
@@ -187,7 +264,7 @@ export default function RateBoard({
                         </p>
                       </div>
 
-                      {/* EXPLICIT STOCK IN / OUT OF STOCK BUTTON */}
+                      {/* Stock Switch Toggle */}
                       <div className="flex flex-col items-start sm:items-end">
                         <span className="text-[10px] text-stone-400 font-semibold mb-1 flex items-center gap-1">
                           <Power className="w-2.5 h-2.5 text-stone-400" />
@@ -198,22 +275,21 @@ export default function RateBoard({
                           type="button"
                           onClick={() => onToggleStock(product.id)}
                           title={`${t.clickToSwitch}: ${isAvailable ? t.outOfStockBtn : t.inStockBtn}`}
-                          className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-md border ${
+                          className={`relative inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-md border ${
                             isAvailable
                               ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-200 hover:bg-emerald-900/80 ring-1 ring-emerald-500/20"
                               : "bg-red-950/70 border-red-500/50 text-red-200 hover:bg-red-900/80 ring-1 ring-red-500/20"
                           }`}
                         >
-                          {/* Sliding switch track icon */}
                           <span
-                            className={`w-7 h-4 rounded-full flex items-center p-0.5 transition-colors ${
+                            className={`w-6 h-3.5 rounded-full flex items-center p-0.5 transition-colors ${
                               isAvailable ? "bg-emerald-500 justify-end" : "bg-red-500 justify-start"
                             }`}
                           >
-                            <span className="w-3 h-3 rounded-full bg-white shadow-sm"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-white shadow-sm"></span>
                           </span>
 
-                          <span className="tracking-tight">
+                          <span className="tracking-tight text-[11px]">
                             {isAvailable ? t.inStockBtn : t.outOfStockBtn}
                           </span>
                         </button>
@@ -244,6 +320,98 @@ export default function RateBoard({
                 </div>
               </div>
 
+              {/* Card Middle: Real-Time Stock in KG Controller */}
+              <div className="px-3.5 py-2.5 bg-stone-950/70 border-t border-stone-800/60 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-stone-400 font-semibold flex items-center gap-1">
+                    <Scale className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{t.stockKgLabel}</span>
+                  </span>
+
+                  {isEditingStock ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        autoFocus
+                        value={draftStockKg}
+                        onChange={(e) => setDraftStockKg(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveStock(product.id);
+                          if (e.key === "Escape") setEditingStockId(null);
+                        }}
+                        className="w-16 bg-stone-900 border border-amber-500 text-white font-bold text-xs rounded-lg px-2 py-0.5 text-right"
+                      />
+                      <span className="text-xs text-stone-400 font-medium">kg</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveStock(product.id)}
+                        className="p-1 rounded-lg bg-emerald-500 text-stone-950"
+                      >
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStockId(null)}
+                        className="p-1 rounded-lg bg-stone-800 text-stone-400"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleStartStockEdit(product)}
+                      className={`px-2 py-0.5 rounded-lg font-mono text-xs font-bold border transition-colors flex items-center gap-1 ${
+                        currentStock > 0
+                          ? "bg-amber-500/10 text-amber-300 border-amber-500/30 hover:border-amber-400"
+                          : "bg-red-500/10 text-red-300 border-red-500/30 hover:border-red-400"
+                      }`}
+                    >
+                      <span>{currentStock} kg</span>
+                      <Edit2 className="w-2.5 h-2.5 text-stone-400 ml-0.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Stock Modifiers (+10kg, +25kg, -5kg) */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStockDelta(product.id, currentStock, 10)}
+                    className="px-2 py-0.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-[10px] font-bold text-stone-300 hover:text-white transition-colors border border-stone-700/60"
+                  >
+                    {t.quickAddStock10}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStockDelta(product.id, currentStock, 25)}
+                    className="px-2 py-0.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-[10px] font-bold text-stone-300 hover:text-white transition-colors border border-stone-700/60"
+                  >
+                    {t.quickAddStock25}
+                  </button>
+                  {currentStock >= 5 && (
+                    <button
+                      type="button"
+                      onClick={() => handleQuickStockDelta(product.id, currentStock, -5)}
+                      className="px-2 py-0.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-[10px] font-bold text-stone-400 hover:text-red-300 transition-colors border border-stone-700/60"
+                    >
+                      {t.quickSubStock5}
+                    </button>
+                  )}
+                  {onDeleteProduct && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteProduct(product.id)}
+                      title={t.removeFromInventory}
+                      className="p-1 rounded-lg hover:bg-red-950 text-stone-600 hover:text-red-400 transition-colors ml-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Card Bottom: Daily Rate Board with "Edit Price" -> "OK" Button Pattern */}
               <div className="bg-stone-950/90 border-t border-stone-800/80 p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -251,8 +419,8 @@ export default function RateBoard({
                     <Wheat className="w-3.5 h-3.5" />
                     {t.dailySellingPrice}
                   </span>
-                  <span className="text-[10px] text-stone-500">
-                    {t.stockKgLabel} ~{product.stockKg} kg
+                  <span className="text-[10px] text-stone-500 font-medium">
+                    {t.activeInventoryNotice.split(":")[0]}
                   </span>
                 </div>
 
@@ -305,7 +473,7 @@ export default function RateBoard({
                                   if (e.key === "Enter") {
                                     handleSavePrice(product.id, weightKey);
                                   } else if (e.key === "Escape") {
-                                    handleCancelEdit();
+                                    handleCancelPriceEdit();
                                   }
                                 }}
                                 className="w-16 text-center text-lg font-black text-white bg-stone-900 border border-amber-500/80 rounded-lg py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-400"
@@ -335,7 +503,7 @@ export default function RateBoard({
                               </button>
                               <button
                                 type="button"
-                                onClick={handleCancelEdit}
+                                onClick={handleCancelPriceEdit}
                                 title={t.cancelPriceBtn}
                                 className="p-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white text-xs"
                               >
@@ -345,7 +513,7 @@ export default function RateBoard({
                           ) : (
                             <button
                               type="button"
-                              onClick={() => handleStartEdit(product.id, weightKey, price)}
+                              onClick={() => handleStartPriceEdit(product.id, weightKey, price)}
                               className="w-full py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700/90 text-stone-300 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1 active:scale-95 transition-all border border-stone-700/50"
                             >
                               <Edit2 className="w-3 h-3 text-amber-400" />
