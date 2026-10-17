@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+
 import {
   Plus,
   Minus,
@@ -66,10 +66,11 @@ export default function ProductCard({
       {/* Top Part: Image, Badges & Titles */}
       <div>
         <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-stone-950 mb-3 border border-stone-800/60">
-          <Image
+          <img
             src={product.imageUrl}
             alt={product.englishName || product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
           />
 
           {/* Badges overlay */}
@@ -191,7 +192,7 @@ export default function ProductCard({
       {/* Bottom Part: Price & Cart Button */}
       <div className="pt-3 border-t border-stone-800 flex items-center justify-between gap-3">
         <div>
-          <div className="text-lg font-black text-green-500 leading-tight">
+          <div className="text-lg font-black text-emerald-400 leading-tight">
             ₹{currentPrice}
           </div>
           <div className="text-[10px] text-stone-400 font-medium">

@@ -282,17 +282,15 @@ export default function ChakkiAdminHome() {
         t={t}
       />
 
-      {isMasterCatalogOpen && (
-        <MasterCatalogModal
-          isOpen={isMasterCatalogOpen}
-          onClose={() => setIsMasterCatalogOpen(false)}
-          masterCatalog={masterCatalog}
-          currentProducts={products}
-          onSaveInventory={(items) => initializeInventory(items)}
-          lang={lang}
-          t={t}
-        />
-      )}
+      <MasterCatalogModal
+        isOpen={isMasterCatalogOpen}
+        onClose={() => setIsMasterCatalogOpen(false)}
+        masterCatalog={masterCatalog}
+        currentProducts={products}
+        onSaveInventory={(items) => initializeInventory(items)}
+        lang={lang}
+        t={t}
+      />
     </div>
   );
 }

@@ -13,7 +13,9 @@ import CheckoutModal from "../components/CheckoutModal";
 import OrderTrackingView from "../components/OrderTrackingView";
 import RatingModal from "../components/RatingModal";
 import PWAInstallBanner from "../components/PWAInstallBanner";
+import BottomNavigation from "../components/BottomNavigation";
 import { useCustomerStore } from "../lib/customerStore";
+
 import {
   ShoppingBag,
   Sparkles,
@@ -58,6 +60,7 @@ export default function ConsumerPwaHome() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [activeMobileTab, setActiveMobileTab] = useState("store");
 
   // Category filter state
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -84,7 +87,23 @@ export default function ConsumerPwaHome() {
         onOpenTracking={() => setIsTrackingOpen(true)}
         lang={lang}
         onToggleLang={toggleLang}
+        onResetData={() => {
+          if (
+            window.confirm(
+              lang === "hi"
+                ? "क्या आप ऐप डेटा और कार्ट रीसेट करना चाहते हैं?"
+                : "Reset cart and app data?"
+            )
+          ) {
+            clearCart();
+            if (typeof window !== "undefined") {
+              localStorage.clear();
+              window.location.reload();
+            }
+          }
+        }}
       />
+
 
       {/* Main Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-5 pb-28 sm:pb-16">
@@ -236,12 +255,12 @@ export default function ConsumerPwaHome() {
         </section>
       </main>
 
-      {/* Floating Bottom Cart Bar (Mobile-first Blinkit Style) */}
+      {/* Floating Bottom Cart Bar (Native Mobile Hover Pill) */}
       {cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 p-3 bg-stone-950/90 backdrop-blur-md border-t border-stone-800 animate-in slide-in-from-bottom duration-200">
-          <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
+        <div className="fixed bottom-[62px] sm:bottom-4 left-3 right-3 sm:left-auto sm:right-6 sm:w-96 z-30 p-2.5 sm:p-3 bg-stone-900/95 border border-amber-500/40 rounded-2xl shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-black">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-black text-xs">
                 {cartSummary.totalItems}
               </div>
               <div>
@@ -257,7 +276,7 @@ export default function ConsumerPwaHome() {
 
             <button
               onClick={() => setIsCartOpen(true)}
-              className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center gap-1.5 active:scale-95 transition-all"
+              className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center gap-1.5 active:scale-95 transition-all"
             >
               <span>{lang === "hi" ? "टोकरी देखें" : "View Cart"}</span>
               <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
@@ -265,6 +284,7 @@ export default function ConsumerPwaHome() {
           </div>
         </div>
       )}
+
 
       {/* Footer */}
       <footer className="border-t border-stone-900 bg-stone-950 text-stone-500 py-6 px-4 text-center text-xs">
@@ -282,7 +302,36 @@ export default function ConsumerPwaHome() {
         </div>
       </footer>
 
+      {/* Native Mobile Bottom Navigation Bar */}
+      <BottomNavigation
+        activeTab={activeMobileTab}
+        onSelectTab={(tab) => {
+          setActiveMobileTab(tab);
+          if (tab === "store") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+        }}
+        onOpenMillModal={() => setIsMillModalOpen(true)}
+        onOpenTracking={() => {
+          if (activeOrder) {
+            setIsTrackingOpen(true);
+          } else {
+            setIsCartOpen(true);
+          }
+        }}
+        onOpenCart={() => setIsCartOpen(true)}
+        cartCount={cartSummary.totalItems}
+        cartTotal={cartSummary.totalAmount}
+        hasActiveOrder={Boolean(
+          activeOrder &&
+            activeOrder.orderStatus !== "delivered" &&
+            activeOrder.orderStatus !== "cancelled"
+        )}
+        lang={lang}
+      />
+
       {/* Modals & Drawers */}
+
       <LocationModal
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
