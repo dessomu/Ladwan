@@ -127,7 +127,11 @@ export default function ConsumerPwaHome() {
         onOpenCart={() => setIsCartOpen(true)}
         activeOrder={activeOrder}
         onOpenTracking={() => setIsTrackingOpen(true)}
+        userProfile={userProfile}
         onOpenProfile={() => setIsProfileOpen(true)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        browseMode={browseMode}
         lang={lang}
       />
 
@@ -188,39 +192,9 @@ export default function ConsumerPwaHome() {
             </div>
           )}
 
-        {/* Search Bar + Dual Browsing Mode Strip */}
-        <div className="space-y-3 mb-6">
-          {/* 1. Smart Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={
-                lang === "hi"
-                  ? browseMode === "flours"
-                    ? "आटा, सत्तू, बेसन, रागी या ज्वार खोजें..."
-                    : "निकटतम चक्की, इलाका या पत्थर का प्रकार खोजें..."
-                  : browseMode === "flours"
-                  ? "Search flour, sattu, besan, ragi, or millets..."
-                  : "Search chakki name, area, or stone type..."
-              }
-              className="w-full bg-stone-900/90 border border-stone-800 focus:border-amber-500/60 rounded-2xl pl-10 pr-9 py-2.5 text-xs text-stone-100 placeholder-stone-500 outline-none transition-all focus:ring-1 focus:ring-amber-500/30 shadow-inner"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* 2. Dual Mode Switcher Bar */}
-          <div className="flex items-center p-1 rounded-2xl bg-stone-900/80 border border-stone-800">
+        {/* Dual Browsing Mode Strip (Atta & Grains vs Nearby Chakkis) */}
+        <div className="mb-6">
+          <div className="flex items-center p-1 rounded-2xl bg-stone-900/80 border border-stone-800 shadow-lg">
             {/* Mode 1: Atta & Grains */}
             <button
               type="button"
