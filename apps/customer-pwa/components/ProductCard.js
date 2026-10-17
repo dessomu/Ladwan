@@ -207,7 +207,7 @@ export default function ProductCard({
           className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-95 text-stone-950 font-bold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition-all"
         >
           <Plus className="w-3.5 h-3.5 stroke-[3]" />
-          <span>
+          <span suppressHydrationWarning>
             {quantityInCart > 0
               ? `${
                   lang === "hi" ? "और जोड़ें" : "Add More"

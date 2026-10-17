@@ -1,7 +1,7 @@
 // apps/customer-pwa/components/CheckoutModal.js - Checkout & Dual Payment (COD / Dynamic UPI QR)
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   CreditCard,
@@ -24,17 +24,28 @@ export default function CheckoutModal({
   cartSummary,
   selectedMill,
   currentLocation,
+  userProfile,
   onPlaceOrder,
   lang,
 }) {
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(userProfile?.name || "");
+  const [customerPhone, setCustomerPhone] = useState(userProfile?.phone || "");
   const [addressLine, setAddressLine] = useState(
-    currentLocation?.area || currentLocation?.name || ""
+    userProfile?.streetArea || currentLocation?.area || currentLocation?.name || ""
   );
-  const [flatNumber, setFlatNumber] = useState("");
-  const [landmark, setLandmark] = useState("");
+  const [flatNumber, setFlatNumber] = useState(userProfile?.houseFlat || "");
+  const [landmark, setLandmark] = useState(userProfile?.landmark || "");
   const [instructions, setInstructions] = useState("");
+
+  useEffect(() => {
+    if (userProfile && isOpen) {
+      if (userProfile.name) setCustomerName(userProfile.name);
+      if (userProfile.phone) setCustomerPhone(userProfile.phone);
+      if (userProfile.houseFlat) setFlatNumber(userProfile.houseFlat);
+      if (userProfile.streetArea) setAddressLine(userProfile.streetArea);
+      if (userProfile.landmark) setLandmark(userProfile.landmark);
+    }
+  }, [userProfile, isOpen]);
 
   const [paymentMethod, setPaymentMethod] = useState("cod"); // "cod" | "upi"
   const [transactionRef, setTransactionRef] = useState("");

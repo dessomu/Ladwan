@@ -28,6 +28,7 @@ import {
   DEFAULT_LOCATION,
 } from "./geo.js";
 import { soundManager } from "./sound.js";
+import { translations } from "./translations.js";
 
 const STORAGE_KEYS = {
   LOCATION: "ladwan_customer_location_v1",
@@ -36,6 +37,16 @@ const STORAGE_KEYS = {
   ACTIVE_ORDER_ID: "ladwan_customer_active_order_v1",
   ORDER_HISTORY: "ladwan_customer_orders_v1",
   LANG: "ladwan_customer_lang_v1",
+  PROFILE: "ladwan_customer_profile_v1",
+};
+
+const DEFAULT_PROFILE = {
+  name: "सोमनाथ बैद्य",
+  phone: "9876543210",
+  houseFlat: "फ्लैट 3B, शांति निकेतन",
+  streetArea: "स्टेशन रोड, सोनारपुर",
+  landmark: "सोनारपुर रेलवे स्टेशन के निकट",
+  defaultGrind: "बारीक (रोटी)",
 };
 
 function getStoredJson(key, fallback) {
@@ -59,39 +70,52 @@ export function useCustomerStore() {
   const [isClient, setIsClient] = useState(false);
   const [lang, setLang] = useState("hi");
 
-  // Location state (defaults to Sonarpur, Kolkata)
-  const [location, setLocationState] = useState(() =>
-    getStoredJson(STORAGE_KEYS.LOCATION, DEFAULT_LOCATION)
-  );
-
-  // Mills state
+  // Predictable initial states identical on SSR and initial client render
+  const [location, setLocationState] = useState(DEFAULT_LOCATION);
   const [allMills, setAllMills] = useState(ALL_SEED_MILLS);
-  const [selectedMillId, setSelectedMillIdState] = useState(() =>
-    getStoredJson(STORAGE_KEYS.SELECTED_MILL_ID, "mill_annapurna_sonarpur_01")
-  );
-
-  // Cart state
-  const [cart, setCartState] = useState(() =>
-    getStoredJson(STORAGE_KEYS.CART, [])
-  );
-
-  // Active tracking order ID
-  const [activeOrderId, setActiveOrderIdState] = useState(() =>
-    getStoredJson(STORAGE_KEYS.ACTIVE_ORDER_ID, null)
-  );
+  const [selectedMillId, setSelectedMillIdState] = useState("mill_annapurna_sonarpur_01");
+  const [cart, setCartState] = useState([]);
+  const [activeOrderId, setActiveOrderIdState] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [userProfile, setUserProfileState] = useState(DEFAULT_PROFILE);
 
-  // Local order history
-  const [orderHistory, setOrderHistory] = useState(() =>
-    getStoredJson(STORAGE_KEYS.ORDER_HISTORY, [])
-  );
-
-  // Client hydration
+  // Client hydration safely executed after initial mount
   useEffect(() => {
     setIsClient(true);
+    const savedLoc = getStoredJson(STORAGE_KEYS.LOCATION, null);
+    if (savedLoc) setLocationState(savedLoc);
+
+    const savedMill = getStoredJson(STORAGE_KEYS.SELECTED_MILL_ID, null);
+    if (savedMill) setSelectedMillIdState(savedMill);
+
+    const savedCart = getStoredJson(STORAGE_KEYS.CART, null);
+    if (savedCart && Array.isArray(savedCart)) setCartState(savedCart);
+
+    const savedOrderId = getStoredJson(STORAGE_KEYS.ACTIVE_ORDER_ID, null);
+    if (savedOrderId) setActiveOrderIdState(savedOrderId);
+
+    const savedOrders = getStoredJson(STORAGE_KEYS.ORDER_HISTORY, null);
+    if (savedOrders && Array.isArray(savedOrders)) setOrderHistory(savedOrders);
+
     const savedLang = localStorage.getItem(STORAGE_KEYS.LANG);
     if (savedLang) setLang(savedLang);
+
+    const savedProfile = getStoredJson(STORAGE_KEYS.PROFILE, null);
+    if (savedProfile) setUserProfileState(savedProfile);
   }, []);
+
+  // Update profile callback
+  const updateProfile = useCallback((newProfile) => {
+    setUserProfileState((prev) => {
+      const merged = { ...prev, ...newProfile };
+      setStoredJson(STORAGE_KEYS.PROFILE, merged);
+      return merged;
+    });
+  }, []);
+
+  // Multilingual dictionary
+  const t = useMemo(() => translations[lang] || translations.hi, [lang]);
 
   // Sync lang change
   const toggleLang = useCallback(() => {
@@ -548,8 +572,11 @@ export function useCustomerStore() {
   return {
     isClient,
     lang,
+    t,
     setLang,
     toggleLang,
+    userProfile,
+    updateProfile,
     location,
     setLocation,
     allMills,

@@ -47,8 +47,11 @@ function toRad(degrees) {
  */
 export function formatDistance(distanceKm) {
   if (distanceKm === undefined || distanceKm === null) return "1.2 km";
+  if (distanceKm < 0.3) {
+    return "0.4 km";
+  }
   if (distanceKm < 1) {
-    return `${Math.round(distanceKm * 1000)} m`;
+    return `${distanceKm.toFixed(1)} km`;
   }
   return `${distanceKm.toFixed(1)} km`;
 }
@@ -57,13 +60,13 @@ export function formatDistance(distanceKm) {
  * Estimates delivery time based on fresh stone milling time + delivery distance.
  * Base milling time = 20-30 mins; transit = 8 mins per km.
  * @param {number} distanceKm
- * @returns {string} Estimated ETA (e.g. "30-40 मिनट")
+ * @returns {string} Estimated ETA (e.g. "30-40 min")
  */
 export function estimateDeliveryMinutes(distanceKm = 1.5) {
   const transitMinutes = Math.max(10, Math.round(distanceKm * 7));
   const minTime = 20 + transitMinutes;
   const maxTime = minTime + 15;
-  return `${minTime}-${maxTime} मिनट (${minTime}-${maxTime} mins)`;
+  return `${minTime}-${maxTime} min`;
 }
 
 /**

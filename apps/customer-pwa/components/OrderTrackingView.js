@@ -21,6 +21,7 @@ import {
 import { ORDER_TRACKING_STEPS } from "@ladwan/firebase/schemas";
 
 export default function OrderTrackingView({
+  isOpen = true,
   order,
   onClose,
   onCancelOrder,
@@ -33,7 +34,7 @@ export default function OrderTrackingView({
   const [showCancelPrompt, setShowCancelPrompt] = useState(false);
   const [cancelError, setCancelError] = useState("");
 
-  if (!order) return null;
+  if (!isOpen || !order) return null;
 
   const currentStatus = order.orderStatus || order.status || "placed";
   const isCancelled = currentStatus === "cancelled";
@@ -63,8 +64,14 @@ export default function OrderTrackingView({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-stone-900 border border-stone-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-stone-900 border border-stone-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]"
+      >
         {/* Header */}
         <div className="px-5 py-4 border-b border-stone-800 flex items-center justify-between bg-stone-950/60">
           <div className="flex items-center gap-2.5">
@@ -86,10 +93,13 @@ export default function OrderTrackingView({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-stone-800 text-stone-400 hover:text-stone-100 flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full bg-stone-800 hover:bg-stone-700 active:scale-90 text-stone-300 hover:text-stone-100 flex items-center justify-center transition-all cursor-pointer shadow-md"
+            title="बंद करें (Close)"
+            aria-label="Close Tracking"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
@@ -402,6 +412,23 @@ export default function OrderTrackingView({
               )}
             </div>
           )}
+        </div>
+
+        {/* Modal Footer with Close Button */}
+        <div className="px-5 py-3 border-t border-stone-800 bg-stone-950/80 flex items-center justify-between gap-3 shrink-0">
+          <div className="text-[11px] text-stone-400">
+            {lang === "hi"
+              ? "होम स्क्रीन से कभी भी लाइव स्टेटस देख सकते हैं"
+              : "Track anytime from home screen"}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="py-2 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 active:scale-95 text-stone-200 hover:text-stone-100 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <X className="w-4 h-4 stroke-[2.5]" />
+            <span suppressHydrationWarning>{lang === "hi" ? "वापस जाएं (Close)" : "Close"}</span>
+          </button>
         </div>
       </div>
     </div>

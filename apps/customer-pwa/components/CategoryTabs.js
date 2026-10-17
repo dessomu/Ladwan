@@ -27,7 +27,7 @@ export default function CategoryTabs({ activeCategory, onSelectCategory, lang })
             }`}
           >
             <span>{cat.icon}</span>
-            <span>{lang === "hi" ? cat.label : cat.englishLabel}</span>
+            <span suppressHydrationWarning>{lang === "hi" ? cat.label : cat.englishLabel}</span>
           </button>
         );
       })}

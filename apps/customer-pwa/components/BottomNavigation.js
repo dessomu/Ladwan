@@ -1,7 +1,7 @@
 // apps/customer-pwa/components/BottomNavigation.js - Native Mobile App Bottom Sticky Navigation Bar
 "use client";
 
-import { Wheat, Store, Clock, ShoppingBag, MapPin, Sparkles } from "lucide-react";
+import { Wheat, Store, Clock, ShoppingCart } from "lucide-react";
 
 export default function BottomNavigation({
   activeTab = "store",
@@ -46,7 +46,7 @@ export default function BottomNavigation({
     {
       id: "cart",
       label: lang === "hi" ? "टोकरी" : "Cart",
-      icon: ShoppingBag,
+      icon: ShoppingCart,
       badge: cartCount,
       badgeColor: "bg-red-500",
       amount: cartCount > 0 ? `₹${cartTotal}` : null,
@@ -94,17 +94,12 @@ export default function BottomNavigation({
                 )}
               </div>
 
-              <span className="text-[10px] mt-1 tracking-tight flex items-center gap-0.5">
+              <span className="text-[10px] mt-1 tracking-tight flex items-center gap-0.5" suppressHydrationWarning>
                 <span>{tab.label}</span>
                 {tab.amount && (
                   <span className="text-amber-300 font-black">({tab.amount})</span>
                 )}
               </span>
-
-              {/* Active Pill Indicator */}
-              {isActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-0.5 shadow-sm shadow-amber-400"></span>
-              )}
             </button>
           );
         })}

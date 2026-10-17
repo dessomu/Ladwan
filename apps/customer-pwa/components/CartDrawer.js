@@ -6,7 +6,7 @@ import {
   Plus,
   Minus,
   Trash2,
-  ShoppingBag,
+  ShoppingCart,
   Sparkles,
   ShieldCheck,
   ArrowRight,
@@ -34,7 +34,7 @@ export default function CartDrawer({
         <div className="px-5 py-4 border-b border-stone-800 flex items-center justify-between bg-stone-950/60">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingCart className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-stone-100 flex items-center gap-2">
@@ -97,7 +97,7 @@ export default function CartDrawer({
           {cart.length === 0 ? (
             <div className="py-20 text-center space-y-3">
               <div className="w-16 h-16 rounded-2xl bg-stone-800/60 border border-stone-800 text-stone-500 flex items-center justify-center mx-auto">
-                <ShoppingBag className="w-8 h-8" />
+                <ShoppingCart className="w-8 h-8" />
               </div>
               <div className="text-sm font-bold text-stone-200">
                 {lang === "hi" ? "आपकी टोकरी खाली है" : "Your cart is empty"}
