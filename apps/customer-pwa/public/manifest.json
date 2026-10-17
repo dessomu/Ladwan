@@ -1,0 +1,18 @@
+{
+  "name": "लाडवां - ताज़ा आटा चक्की (Ladwan)",
+  "short_name": "लाडवां आटा",
+  "description": "हाइपर-लोकल पारंपरिक पत्थर-पिसा शुद्ध आटा डिलीवरी नेटवर्क • No Warehouse Storage",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0a09",
+  "theme_color": "#1c1917",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

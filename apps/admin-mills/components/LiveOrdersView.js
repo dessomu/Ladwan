@@ -14,9 +14,17 @@ import {
   ArrowRight,
   FileText,
 } from "lucide-react";
+import {
+  formatCustomerName,
+  formatAddress,
+  formatCustomerNote,
+  formatOrderItemName,
+  formatGrindOption,
+} from "../lib/langUtils";
 
 export default function LiveOrdersView({
   orders,
+  products = [],
   onUpdateStatus,
   onSimulateOrder,
   lang = "hi",
@@ -150,7 +158,7 @@ export default function LiveOrdersView({
                       </span>
                     </div>
                     <p className="text-xs font-semibold text-stone-300">
-                      {order.customer.name}
+                      {formatCustomerName(order.customer, lang)}
                     </p>
                   </div>
                 </div>
@@ -182,14 +190,14 @@ export default function LiveOrdersView({
                           {item.quantity}x
                         </span>
                         <span className="font-semibold text-white">
-                          {lang === "en" && item.englishName ? item.englishName : item.name}
+                          {formatOrderItemName(item, lang, products)}
                         </span>
                         <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 text-[11px] font-bold border border-amber-500/20">
                           {item.weight}
                         </span>
-                        {item.grind && (
+                        {(item.englishGrind || item.grind) && (
                           <span className="text-[11px] text-stone-400">
-                            ({item.grind})
+                            ({formatGrindOption(item.englishGrind || item.grind, lang)})
                           </span>
                         )}
                       </div>
@@ -206,7 +214,7 @@ export default function LiveOrdersView({
                     <MapPin className="w-4 h-4 text-stone-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-stone-300 font-medium leading-relaxed">
-                        {order.customer.address}
+                        {formatAddress(order.customer, lang)}
                       </p>
                       <p className="text-[11px] text-stone-500 mt-0.5">
                         {t.distanceLabel || (lang === "en" ? "Distance:" : "दूरी:")}{" "}
@@ -222,7 +230,7 @@ export default function LiveOrdersView({
                         {t.customerNoteLabel}
                       </span>
                       <p className="text-stone-200 italic text-[11px] mt-0.5">
-                        "{order.specialInstructions || t.specialNotesPlaceholder || (lang === "en" ? "Fresh ground flour, please pack carefully." : "ताज़ा पिसा हुआ आटा, कृपया ध्यान से पैक करें।")}"
+                        "{formatCustomerNote(order, lang, t.specialNotesPlaceholder)}"
                       </p>
                     </div>
                   </div>
