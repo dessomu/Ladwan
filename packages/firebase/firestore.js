@@ -7,6 +7,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   collection,
   onSnapshot,
   query,
@@ -17,6 +18,7 @@ import {
   writeBatch,
   deleteDoc,
 } from "firebase/firestore";
+
 import { COLLECTIONS, SUBCOLLECTIONS } from "./schemas.js";
 
 // ── MILL ────────────────────────────────────────────────────────────────────
@@ -343,3 +345,227 @@ export async function seedMillToFirestore(millId, millData, products, orders = [
     return false;
   }
 }
+
+// ── CUSTOMER & DISCOVERY HELPERS ─────────────────────────────────────────────
+
+/**
+ * Real-time listener for all active mills.
+ * @param {function} onUpdate - Called with array of active mill documents.
+ * @returns {function} Unsubscribe function.
+ */
+export function listenActiveMills(onUpdate) {
+  if (!isFirebaseConfigured || !db) return () => {};
+  return onSnapshot(
+    collection(db, COLLECTIONS.MILLS),
+    (snapshot) => {
+      const mills = [];
+      snapshot.forEach((d) => {
+        const data = d.data();
+        if (data.isOpen !== false) {
+          mills.push({ id: d.id, ...data });
+        }
+      });
+      onUpdate(mills);
+    },
+    (err) => {
+      console.warn("[Firestore] listenActiveMills warning:", err.message);
+    }
+  );
+}
+
+/**
+ * Get all active mills once.
+ */
+export async function getActiveMills() {
+  if (!isFirebaseConfigured || !db) return [];
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.MILLS));
+    const mills = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (data.isOpen !== false) {
+        mills.push({ id: d.id, ...data });
+      }
+    });
+    return mills;
+  } catch (err) {
+    console.error("[Firestore] getActiveMills error:", err);
+    return [];
+  }
+}
+
+/**
+ * Real-time listener for a single order (Customer Live Order Tracking).
+ * @param {string} orderId
+ * @param {function} onUpdate - Called with order data or null.
+ * @returns {function} Unsubscribe function.
+ */
+export function listenOrder(orderId, onUpdate) {
+  if (!isFirebaseConfigured || !db || !orderId) return () => {};
+  return onSnapshot(
+    doc(db, COLLECTIONS.ORDERS, orderId),
+    (snap) => {
+      if (snap.exists()) {
+        onUpdate({ id: snap.id, ...snap.data() });
+      } else {
+        onUpdate(null);
+      }
+    },
+    (err) => {
+      console.warn("[Firestore] listenOrder error:", err.message);
+    }
+  );
+}
+
+/**
+ * Get a single order document once.
+ * @param {string} orderId
+ */
+export async function getOrder(orderId) {
+  if (!isFirebaseConfigured || !db || !orderId) return null;
+  try {
+    const snap = await getDoc(doc(db, COLLECTIONS.ORDERS, orderId));
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  } catch (err) {
+    console.error("[Firestore] getOrder error:", err);
+    return null;
+  }
+}
+
+/**
+ * Create a new customer order in Firestore.
+ * @param {object} order
+ */
+export async function createCustomerOrder(order) {
+  if (!isFirebaseConfigured || !db) return null;
+  try {
+    const now = new Date().toISOString();
+    const finalOrder = {
+      ...order,
+      orderStatus: order.orderStatus || "placed",
+      status: order.orderStatus || "placed",
+      paymentStatus: order.paymentMethod === "upi" ? "payment_verification_pending" : (order.paymentStatus || "pending"),
+      createdAt: now,
+      updatedAt: now,
+    };
+    await setDoc(doc(db, COLLECTIONS.ORDERS, finalOrder.id), finalOrder);
+    return finalOrder;
+  } catch (err) {
+    console.error("[Firestore] createCustomerOrder error:", err);
+    return null;
+  }
+}
+
+/**
+ * Cancel an order if it is in 'placed' or 'accepted' state.
+ * Refuses cancellation once grinding has started to prevent raw material waste.
+ * @param {string} orderId
+ * @param {string} reason
+ */
+export async function cancelCustomerOrder(orderId, reason = "Customer requested cancellation") {
+  if (!isFirebaseConfigured || !db) return { success: true };
+  try {
+    const snap = await getDoc(doc(db, COLLECTIONS.ORDERS, orderId));
+    if (!snap.exists()) return { success: false, error: "Order not found" };
+
+    const data = snap.data();
+    const currentStatus = data.orderStatus || data.status || "placed";
+
+    // Only allow cancellation in early pre-processing stages
+    const cancellableStatuses = ["placed", "accepted", "pending"];
+    if (!cancellableStatuses.includes(currentStatus)) {
+      return {
+        success: false,
+        error: "ताज़ा गेहूं की पिसाई शुरू हो चुकी है, अब ऑर्डर रद्द नहीं किया जा सकता (Fresh milling is already underway).",
+      };
+    }
+
+    await updateDoc(doc(db, COLLECTIONS.ORDERS, orderId), {
+      orderStatus: "cancelled",
+      status: "cancelled",
+      cancelledAt: new Date().toISOString(),
+      cancellationReason: reason,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("[Firestore] cancelCustomerOrder error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Submit post-delivery customer feedback & rating.
+ * Writes to reviews/{reviewId} and recalculates mill rating average.
+ * @param {object} review
+ */
+export async function submitReview(review) {
+  if (!isFirebaseConfigured || !db) return true;
+  try {
+    const reviewId = review.id || `rev_${Date.now()}`;
+    const now = new Date().toISOString();
+    const reviewData = {
+      ...review,
+      id: reviewId,
+      createdAt: now,
+    };
+
+    await setDoc(doc(db, COLLECTIONS.REVIEWS, reviewId), reviewData);
+
+    // Increment mill review count and update rating if millId provided
+    if (review.millId) {
+      try {
+        const millRef = doc(db, COLLECTIONS.MILLS, review.millId);
+        const millSnap = await getDoc(millRef);
+        if (millSnap.exists()) {
+          const m = millSnap.data();
+          const currentCount = Number(m.totalReviews || m.reviewCount || 0);
+          const currentRating = Number(m.rating || 5.0);
+          const newRating = Number(review.rating || 5);
+          const updatedAverage = ((currentRating * currentCount) + newRating) / (currentCount + 1);
+
+          await updateDoc(millRef, {
+            rating: Math.round(updatedAverage * 10) / 10,
+            totalReviews: currentCount + 1,
+            reviewCount: currentCount + 1,
+            updatedAt: now,
+          });
+        }
+      } catch (e) {
+        console.warn("[Firestore] Unable to update mill rating aggregate:", e.message);
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error("[Firestore] submitReview error:", err);
+    return false;
+  }
+}
+
+/**
+ * Real-time listener for customer order history.
+ * @param {string} customerId
+ * @param {function} onUpdate
+ */
+export function listenCustomerOrders(customerId, onUpdate) {
+  if (!isFirebaseConfigured || !db || !customerId) return () => {};
+  const q = query(
+    collection(db, COLLECTIONS.ORDERS),
+    where("customerId", "==", customerId)
+  );
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const orders = [];
+      snapshot.forEach((d) => orders.push({ id: d.id, ...d.data() }));
+      orders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      onUpdate(orders);
+    },
+    (err) => {
+      console.warn("[Firestore] listenCustomerOrders warning:", err.message);
+    }
+  );
+}
+

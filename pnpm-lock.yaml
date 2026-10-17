@@ -206,6 +206,18 @@ importers:
 
   apps/customer-pwa:
     dependencies:
+      '@ladwan/firebase':
+        specifier: workspace:*
+        version: link:../../packages/firebase
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
+      firebase:
+        specifier: ^13.0.0
+        version: 13.0.0
+      lucide-react:
+        specifier: ^1.54.0
+        version: 1.54.0(react@19.3.0)
       next:
         specifier: 16.4.0
         version: 16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1404,6 +1416,9 @@ packages:
 
   caniuse-lite@1.0.30001815:
     resolution: {integrity: sha512-uDybUEyfgbyJJ93J1vikTylBX31AkdVYeVPeffMQpf8XN7hSfr0oZOn4VFOIMNvtU5+rHvC5Udg2TgtJKHm23Q==}
+
+  canvas-confetti@1.9.4:
+    resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
 
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -3769,6 +3784,8 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001815: {}
+
+  canvas-confetti@1.9.4: {}
 
   chalk@4.1.2:
     dependencies:

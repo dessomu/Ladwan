@@ -20,6 +20,41 @@ import {
 } from "../lib/langUtils";
 import { MASTER_CATALOG as DEFAULT_MASTER_CATALOG } from "../lib/seedData";
 
+// Helper to build initial inventory selections cleanly
+function buildInitialSelections(catalogItems, currentProducts = []) {
+  const map = new Map();
+  (currentProducts || []).forEach((p) => {
+    if (p && p.id) map.set(p.id, p);
+  });
+
+  const initial = {};
+  (catalogItems || []).forEach((item) => {
+    const existing = map.get(item.id);
+    if (existing) {
+      initial[item.id] = {
+        checked: true,
+        stockKg: existing.stockKg ?? 50,
+        pricePerKg: existing.prices?.["1kg"] ?? item.prices?.["1kg"] ?? 50,
+      };
+    } else {
+      const isDefaultSuggested = [
+        "prod_fresh_chakki_00",
+        "prod_sharbati_01",
+        "prod_lokwan_02",
+        "prod_chana_04",
+        "prod_besan_05",
+      ].includes(item.id);
+
+      initial[item.id] = {
+        checked: isDefaultSuggested && (!currentProducts || currentProducts.length === 0),
+        stockKg: item.stockKg || 50,
+        pricePerKg: item.prices?.["1kg"] || 50,
+      };
+    }
+  });
+  return initial;
+}
+
 export default function MasterCatalogModal({
   isOpen,
   onClose,
@@ -35,75 +70,10 @@ export default function MasterCatalogModal({
       ? masterCatalog
       : DEFAULT_MASTER_CATALOG;
 
-  // Build a lookup map of currently active products
-  const activeProductMap = useMemo(() => {
-    const map = new Map();
-    (currentProducts || []).forEach((p) => {
-      map.set(p.id, p);
-    });
-    return map;
-  }, [currentProducts]);
-
   // Track selection state: Map<productId, { checked: boolean, stockKg: number, pricePerKg: number }>
-  const [selections, setSelections] = useState(() => {
-    const initial = {};
-    catalogItems.forEach((item) => {
-      const existing = activeProductMap.get(item.id);
-      if (existing) {
-        initial[item.id] = {
-          checked: true,
-          stockKg: existing.stockKg ?? 50,
-          pricePerKg: existing.prices?.["1kg"] ?? item.prices?.["1kg"] ?? 50,
-        };
-      } else {
-        const isDefaultSuggested = [
-          "prod_fresh_chakki_00",
-          "prod_sharbati_01",
-          "prod_lokwan_02",
-          "prod_chana_04",
-          "prod_besan_05",
-        ].includes(item.id);
-
-        initial[item.id] = {
-          checked: isDefaultSuggested && currentProducts.length === 0,
-          stockKg: item.stockKg || 50,
-          pricePerKg: item.prices?.["1kg"] || 50,
-        };
-      }
-    });
-    return initial;
-  });
-
-  // Re-synchronize selections whenever the modal opens or active products change
-  useEffect(() => {
-    if (!isOpen) return;
-    const initial = {};
-    catalogItems.forEach((item) => {
-      const existing = activeProductMap.get(item.id);
-      if (existing) {
-        initial[item.id] = {
-          checked: true,
-          stockKg: existing.stockKg ?? 50,
-          pricePerKg: existing.prices?.["1kg"] ?? item.prices?.["1kg"] ?? 50,
-        };
-      } else {
-        const isDefaultSuggested = [
-          "prod_fresh_chakki_00",
-          "prod_sharbati_01",
-          "prod_lokwan_02",
-          "prod_chana_04",
-          "prod_besan_05",
-        ].includes(item.id);
-
-        initial[item.id] = {
-          checked: isDefaultSuggested && currentProducts.length === 0,
-          stockKg: item.stockKg || 50,
-          pricePerKg: item.prices?.["1kg"] || 50,
-        };
-      }
-    });
-    setSelections(initial);
-  }, [isOpen, catalogItems, activeProductMap, currentProducts.length]);
+  const [selections, setSelections] = useState(() =>
+    buildInitialSelections(catalogItems, currentProducts)
+  );
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");

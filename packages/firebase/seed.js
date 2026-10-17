@@ -20,6 +20,7 @@ export const INITIAL_MILL = {
   area: "Sector 14, Old Railway Road",
   city: "Gurugram",
   pincode: "122001",
+  location: { lat: 28.4715, lng: 77.0345 },
   isOpen: true,
   acceptingOrders: true,
   statusReason: "चक्की चालू है • ताज़ा पिसाई जारी है",
@@ -31,10 +32,49 @@ export const INITIAL_MILL = {
   totalReviews: 328,
   totalOrdersFulfilled: 1420,
   deliveryRadiusKm: 6,
+  upiId: "shreeramchakki@upi",
+  upiQrUrl: "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=shreeramchakki@upi%26pn=Shree%20Ram%20Chakki%26cu=INR",
   bannerUrl: "/mill-hero.jpg",
   avatarUrl: "https://images.unsplash.com/photo-1595246140625-573b715d11dc?auto=format&fit=crop&w=600&q=80",
   updatedAt: new Date().toISOString(),
 };
+
+export const KOLKATA_MILL = {
+  id: "mill_annapurna_sonarpur_01",
+  name: "माँ अन्नपूर्णा शुद्ध आटा चक्की",
+  englishName: "Maa Annapurna Shuddh Atta Chakki",
+  tagline: "100% ताज़ा पारंपरिक पत्थर-पिसा आटा (सोनारपुर, कोलकाता)",
+  englishTagline: "100% Fresh Traditional Stone-Ground Flour (Sonarpur, Kolkata)",
+  ownerName: "सुबीर बनर्जी",
+  englishOwnerName: "Subir Banerjee",
+  phone: "+91 98301 23456",
+  whatsapp: "+91 98301 23456",
+  address: "स्टेशन रोड, मुख्य बाज़ार के पास, सोनारपुर",
+  englishAddress: "Station Road, Near Main Bazaar, Sonarpur",
+  area: "Sonarpur",
+  city: "Kolkata",
+  pincode: "700150",
+  location: { lat: 22.4385, lng: 88.4022 },
+  isOpen: true,
+  acceptingOrders: true,
+  statusReason: "चक्की चालू है • ताज़ा पत्थर पिसाई जारी है",
+  openingTime: "07:00 AM",
+  closingTime: "09:00 PM",
+  millingCapacityPerHour: "50 kg/hr",
+  stoneType: "Natural Chakki Stone (ठंडी पिसाई)",
+  rating: 4.95,
+  totalReviews: 412,
+  totalOrdersFulfilled: 1890,
+  deliveryRadiusKm: 5,
+  upiId: "annapurnachakki@okaxis",
+  upiQrUrl: "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=annapurnachakki@okaxis%26pn=Maa%20Annapurna%20Chakki%26cu=INR",
+  bannerUrl: "/mill-hero.jpg",
+  avatarUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80",
+  updatedAt: new Date().toISOString(),
+};
+
+export const ALL_SEED_MILLS = [INITIAL_MILL, KOLKATA_MILL];
+
 
 export const INITIAL_PRODUCTS = [
   {
