@@ -18,7 +18,7 @@ import {
   initializeMillInventory,
   updateInventoryStock,
   deleteInventoryItem,
-} from "@ladwan/firebase/firestore";
+} from "@ladwan/database/firestore";
 import {
   INITIAL_MILL,
   INITIAL_PRODUCTS,
@@ -66,7 +66,7 @@ function setStoredJson(key, data) {
 
 // Helper to calculate metrics from any orders array
 function calculateMetrics(orders = []) {
-  const pending = orders.filter((o) => o.status === "pending").length;
+  const pending = orders.filter((o) => o.status === "pending" || o.status === "placed").length;
   const grinding = orders.filter((o) => o.status === "grinding" || o.status === "in_milling").length;
   const packed = orders.filter((o) => o.status === "packed").length;
   const delivered = orders.filter((o) => o.status === "delivered");
@@ -93,10 +93,6 @@ function calculateMetrics(orders = []) {
   };
 }
 
-function isDemoId(millId) {
-  return !millId || millId === "mill_shree_ram_01" || millId === "mill_krishna_02";
-}
-
 // -------------------------------------------------------------
 // CORE REPOSITORY API (Unified interface for Mill, Products & Orders)
 // -------------------------------------------------------------
@@ -106,22 +102,32 @@ export const millRepository = {
     return isFirebaseConfigured;
   },
 
-  getMill(millId = "mill_shree_ram_01") {
-    const isDemo = isDemoId(millId);
-    const storageKey = isDemo ? STORAGE_KEYS.MILL : `${STORAGE_KEYS.MILL}_${millId}`;
-    const fallback = isDemo ? INITIAL_MILL : { id: millId, name: "लोड हो रहा है...", isOpen: true };
+  getMill(millId = "mill_mv99nb48") {
+    const storageKey = `${STORAGE_KEYS.MILL}_${millId}`;
+    const fallback = {
+      id: millId,
+      name: "लाडवां शुद्ध आटा चक्की",
+      englishName: "Ladwan Fresh Atta Chakki",
+      isOpen: true,
+      acceptingOrders: true,
+      address: "Shop 4, Station Road, Sonarpur",
+      city: "Kolkata",
+      phone: "+91 89181 19210",
+      location: { lat: 22.4385, lng: 88.4022 },
+      deliveryRadiusKm: 5,
+    };
     return getStoredJson(storageKey, fallback);
   },
 
-  updateMill(updates, millId = "mill_shree_ram_01") {
+  updateMill(updates, millId = "mill_mv99nb48") {
     const current = this.getMill(millId);
     const updated = {
       ...current,
       ...updates,
-      id: millId || current.id || INITIAL_MILL.id,
+      id: millId || current.id,
       updatedAt: new Date().toISOString(),
     };
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.MILL : `${STORAGE_KEYS.MILL}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.MILL}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
 
@@ -133,7 +139,7 @@ export const millRepository = {
     return updated;
   },
 
-  toggleStoreStatus(millId = "mill_shree_ram_01") {
+  toggleStoreStatus(millId = "mill_mv99nb48") {
     const current = this.getMill(millId);
     const nextIsOpen = !current.isOpen;
     return this.updateMill(
@@ -148,31 +154,12 @@ export const millRepository = {
     );
   },
 
-  getProducts(millId = "mill_shree_ram_01") {
-    const isDemo = isDemoId(millId);
-    const storageKey = isDemo ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
-    const fallback = isDemo ? INITIAL_PRODUCTS : [];
-    const stored = getStoredJson(storageKey, fallback);
-
-    if (isDemo) {
-      return stored.map((p) => {
-        const initial = INITIAL_PRODUCTS.find((init) => init.id === p.id);
-        if (initial) {
-          return {
-            ...p,
-            englishDescription: p.englishDescription || initial.englishDescription,
-            englishBadge: p.englishBadge || initial.englishBadge,
-            englishGrindOptions: p.englishGrindOptions || initial.englishGrindOptions,
-          };
-        }
-        return p;
-      });
-    }
-
-    return stored;
+  getProducts(millId = "mill_mv99nb48") {
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    return getStoredJson(storageKey, []);
   },
 
-  updateProduct(id, updates, millId = "mill_shree_ram_01") {
+  updateProduct(id, updates, millId = "mill_mv99nb48") {
     const products = this.getProducts(millId);
     let updatedItem = null;
     const updated = products.map((item) => {
@@ -183,7 +170,7 @@ export const millRepository = {
       return item;
     });
 
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
 
@@ -197,7 +184,7 @@ export const millRepository = {
     return updated;
   },
 
-  updateProductPrice(id, weightKey, newPrice, millId = "mill_shree_ram_01") {
+  updateProductPrice(id, weightKey, newPrice, millId = "mill_mv99nb48") {
     const products = this.getProducts(millId);
     let updatedItem = null;
     const updated = products.map((item) => {
@@ -215,7 +202,7 @@ export const millRepository = {
       return item;
     });
 
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
 
@@ -229,7 +216,7 @@ export const millRepository = {
     return updated;
   },
 
-  toggleProductStock(id, millId = "mill_shree_ram_01") {
+  toggleProductStock(id, millId = "mill_mv99nb48") {
     const products = this.getProducts(millId);
     let updatedItem = null;
     const updated = products.map((item) => {
@@ -244,7 +231,7 @@ export const millRepository = {
       return item;
     });
 
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
 
@@ -258,7 +245,7 @@ export const millRepository = {
     return updated;
   },
 
-  addProduct(newProduct, millId = "mill_shree_ram_01") {
+  addProduct(newProduct, millId = "mill_mv99nb48") {
     const products = this.getProducts(millId);
     const product = {
       id: `prod_${Date.now()}`,
@@ -271,7 +258,7 @@ export const millRepository = {
       updatedAt: new Date().toISOString(),
     };
     const updated = [product, ...products];
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
 
@@ -285,7 +272,7 @@ export const millRepository = {
     return product;
   },
 
-  initializeInventory(items, millId = "mill_shree_ram_01") {
+  initializeInventory(items, millId = "mill_mv99nb48") {
     const formatted = items.map((it) => ({
       ...it,
       millId,
@@ -294,7 +281,7 @@ export const millRepository = {
       updatedAt: new Date().toISOString(),
     }));
 
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
     setStoredJson(storageKey, formatted);
     soundManager.playSuccessTone();
 
@@ -308,7 +295,7 @@ export const millRepository = {
     return formatted;
   },
 
-  updateStockKg(productId, newStockKg, millId = "mill_shree_ram_01") {
+  updateStockKg(productId, newStockKg, millId = "mill_mv99nb48") {
     const products = this.getProducts(millId);
     const validStock = Math.max(0, Number(newStockKg) || 0);
     let updatedItem = null;
@@ -326,7 +313,7 @@ export const millRepository = {
       return item;
     });
 
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
 
@@ -340,11 +327,11 @@ export const millRepository = {
     return updated;
   },
 
-  deleteInventoryItem(productId, millId = "mill_shree_ram_01") {
+  deleteInventoryItem(productId, millId = "mill_mv99nb48") {
     const products = this.getProducts(millId);
     const updated = products.filter((item) => item.id !== productId);
 
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.PRODUCTS}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
 
@@ -358,50 +345,21 @@ export const millRepository = {
     return updated;
   },
 
-  getOrders(millId = "mill_shree_ram_01") {
-    const isDemo = isDemoId(millId);
-    const storageKey = isDemo ? STORAGE_KEYS.ORDERS : `${STORAGE_KEYS.ORDERS}_${millId}`;
-    const fallback = isDemo ? INITIAL_ORDERS : [];
-    const stored = getStoredJson(storageKey, fallback);
-
-    if (isDemo) {
-      return stored.map((o) => {
-        const initial = INITIAL_ORDERS.find((init) => init.id === o.id);
-        if (initial) {
-          return {
-            ...o,
-            customer: {
-              ...o.customer,
-              englishName: o.customer?.englishName || initial.customer?.englishName,
-              englishAddress: o.customer?.englishAddress || initial.customer?.englishAddress,
-            },
-            items: (o.items || []).map((item, idx) => {
-              const initialItem = initial.items?.[idx];
-              return {
-                ...item,
-                englishName: item.englishName || initialItem?.englishName,
-                englishGrind: item.englishGrind || initialItem?.englishGrind,
-              };
-            }),
-            englishSpecialInstructions:
-              o.englishSpecialInstructions || initial.englishSpecialInstructions,
-          };
-        }
-        return o;
-      });
-    }
-
-    return stored;
+  getOrders(millId = "mill_mv99nb48") {
+    const storageKey = `${STORAGE_KEYS.ORDERS}_${millId}`;
+    return getStoredJson(storageKey, []);
   },
 
-  updateOrderStatus(orderId, newStatus, millId = "mill_shree_ram_01") {
+  updateOrderStatus(orderId, newStatus, millId = "mill_mv99nb48", extraFields = {}) {
     const orders = this.getOrders(millId);
     let orderUpdates = null;
     const updated = orders.map((order) => {
       if (order.id === orderId) {
         orderUpdates = {
           ...order,
+          ...extraFields,
           status: newStatus,
+          orderStatus: newStatus,
           updatedAt: new Date().toISOString(),
         };
         if (newStatus === "grinding" && !order.grindingStartedAt) {
@@ -415,13 +373,46 @@ export const millRepository = {
       return order;
     });
 
-    const storageKey = isDemoId(millId) ? STORAGE_KEYS.ORDERS : `${STORAGE_KEYS.ORDERS}_${millId}`;
+    const storageKey = `${STORAGE_KEYS.ORDERS}_${millId}`;
     setStoredJson(storageKey, updated);
     soundManager.playSuccessTone();
+
+    // Mirror to customer PWA local storage if present for seamless cross-PWA instant updates
+    if (typeof window !== "undefined") {
+      try {
+        const custOrdersKey = "ladwan_customer_orders_v1";
+        const rawCustOrders = localStorage.getItem(custOrdersKey);
+        if (rawCustOrders) {
+          const parsed = JSON.parse(rawCustOrders);
+          const updatedCust = parsed.map((co) =>
+            co.id === orderId ? { ...co, ...extraFields, status: newStatus, orderStatus: newStatus } : co
+          );
+          localStorage.setItem(custOrdersKey, JSON.stringify(updatedCust));
+        }
+
+        const activeOrderKey = "ladwan_customer_active_order_v1";
+        const rawActive = localStorage.getItem(activeOrderKey);
+        if (rawActive) {
+          const activeOrd = JSON.parse(rawActive);
+          if (activeOrd.id === orderId) {
+            localStorage.setItem(
+              activeOrderKey,
+              JSON.stringify({ ...activeOrd, ...extraFields, status: newStatus, orderStatus: newStatus })
+            );
+          }
+        }
+        window.dispatchEvent(new Event("ladwan:order-updated"));
+      } catch (e) {
+        console.warn("[LocalSync] Error syncing order to customer storage:", e);
+      }
+
+    }
 
     // Live Firestore sync
     if (isFirebaseConfigured && orderUpdates) {
       firestoreUpdateOrderStatus(orderId, newStatus, {
+        ...extraFields,
+        orderStatus: newStatus,
         ...(orderUpdates.grindingStartedAt ? { grindingStartedAt: orderUpdates.grindingStartedAt } : {}),
         ...(orderUpdates.deliveredAt ? { deliveredAt: orderUpdates.deliveredAt } : {}),
       }).catch((err) => console.error("[Firestore] updateOrderStatus error:", err));
@@ -518,8 +509,7 @@ export const millRepository = {
 // REACTIVE CUSTOM HOOK: useChakkiStore(millId)
 // -------------------------------------------------------------
 export function useChakkiStore(activeMillId) {
-  const isDemoMill = isDemoId(activeMillId);
-  const effectiveMillId = activeMillId || "mill_shree_ram_01";
+  const effectiveMillId = activeMillId || "mill_mv99nb48";
 
   const [mill, setMill] = useState(() => millRepository.getMill(effectiveMillId));
   const [products, setProducts] = useState(() => millRepository.getProducts(effectiveMillId));
@@ -563,7 +553,7 @@ export function useChakkiStore(activeMillId) {
       unsubMill = listenMill(effectiveMillId, (cloudMill) => {
         if (cloudMill) {
           setMill(cloudMill);
-          const storageKey = isDemoMill ? STORAGE_KEYS.MILL : `${STORAGE_KEYS.MILL}_${effectiveMillId}`;
+          const storageKey = `${STORAGE_KEYS.MILL}_${effectiveMillId}`;
           setStoredJson(storageKey, cloudMill);
         }
       });
@@ -572,7 +562,7 @@ export function useChakkiStore(activeMillId) {
       unsubProducts = listenProducts(effectiveMillId, (cloudProducts) => {
         if (cloudProducts) {
           setProducts(cloudProducts);
-          const storageKey = isDemoMill ? STORAGE_KEYS.PRODUCTS : `${STORAGE_KEYS.PRODUCTS}_${effectiveMillId}`;
+          const storageKey = `${STORAGE_KEYS.PRODUCTS}_${effectiveMillId}`;
           setStoredJson(storageKey, cloudProducts);
         }
       });
@@ -583,7 +573,7 @@ export function useChakkiStore(activeMillId) {
           // Detect new incoming order to trigger audio chime
           const prevIds = previousOrderIdsRef.current;
           const hasNewPending = cloudOrders.some(
-            (o) => !prevIds.has(o.id) && o.status === "pending"
+            (o) => !prevIds.has(o.id) && (o.status === "pending" || o.status === "placed")
           );
           if (hasNewPending && prevIds.size > 0) {
             soundManager.playOrderBell();
@@ -592,7 +582,7 @@ export function useChakkiStore(activeMillId) {
           previousOrderIdsRef.current = new Set(cloudOrders.map((o) => o.id));
           setOrders(cloudOrders);
           setMetrics(calculateMetrics(cloudOrders));
-          const storageKey = isDemoMill ? STORAGE_KEYS.ORDERS : `${STORAGE_KEYS.ORDERS}_${effectiveMillId}`;
+          const storageKey = `${STORAGE_KEYS.ORDERS}_${effectiveMillId}`;
           setStoredJson(storageKey, cloudOrders);
         }
       });
@@ -605,7 +595,7 @@ export function useChakkiStore(activeMillId) {
       if (typeof unsubProducts === "function") unsubProducts();
       if (typeof unsubOrders === "function") unsubOrders();
     };
-  }, [effectiveMillId, isDemoMill]);
+  }, [effectiveMillId]);
 
   const currentLang = lang || "hi";
   const t = translations[currentLang] || translations.hi;
@@ -636,8 +626,8 @@ export function useChakkiStore(activeMillId) {
     deleteInventoryItem: (productId) =>
       millRepository.deleteInventoryItem(productId, effectiveMillId),
     masterCatalog: MASTER_CATALOG,
-    updateOrderStatus: (id, status) =>
-      millRepository.updateOrderStatus(id, status, effectiveMillId),
+    updateOrderStatus: (id, status, extraFields = {}) =>
+      millRepository.updateOrderStatus(id, status, effectiveMillId, extraFields),
     simulateIncomingOrder: () => millRepository.simulateIncomingOrder(effectiveMillId),
     resetAllData: () => millRepository.resetAllData(),
     playChime: () => soundManager.playOrderBell(),

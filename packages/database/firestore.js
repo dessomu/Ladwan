@@ -1,4 +1,4 @@
-// @ladwan/firebase - Shared Firestore CRUD Helpers & Real-time Listeners
+// @ladwan/database - Shared Firestore CRUD Helpers & Real-time Listeners
 // Used across admin-mills (mill owner), customer-pwa, delivery-boy, super-admin.
 // All functions gracefully no-op when Firebase is not configured.
 
@@ -17,6 +17,7 @@ import {
   serverTimestamp,
   writeBatch,
   deleteDoc,
+  or,
 } from "firebase/firestore";
 
 import { COLLECTIONS, SUBCOLLECTIONS } from "./schemas.js";
@@ -567,5 +568,154 @@ export function listenCustomerOrders(customerId, onUpdate) {
       console.warn("[Firestore] listenCustomerOrders warning:", err.message);
     }
   );
+}
+
+// ── DELIVERY BOY ──────────────────────────────────────────────────────────────
+
+/**
+ * Real-time listener for orders assigned to a specific delivery boy.
+ * Falls back to listening to all `out_for_delivery` orders when no deliveryBoyId is set
+ * (useful during the brief window before assignment).
+ *
+ * Priority query: deliveryBoyId == uid.
+ * Returns orders sorted by createdAt descending.
+ *
+ * @param {string} deliveryBoyId - The UID of the logged-in delivery agent.
+ * @param {function} onUpdate - Called with array of delivery orders.
+ * @returns {function} Unsubscribe function.
+ */
+export function listenDeliveryOrders(deliveryBoyId, onUpdate) {
+  if (!isFirebaseConfigured || !db) return () => {};
+
+  // Primary: orders explicitly assigned to this delivery boy
+  const qAssigned = query(
+    collection(db, COLLECTIONS.ORDERS),
+    where("deliveryBoyId", "==", deliveryBoyId)
+  );
+
+  // Fleet dispatch loop: listen to packed and out_for_delivery orders (unassigned pool)
+  const qPool = query(
+    collection(db, COLLECTIONS.ORDERS),
+    where("status", "in", ["packed", "out_for_delivery"])
+  );
+
+  const mergeAndEmit = (assignedSnap, poolSnap) => {
+    const seen = new Set();
+    const orders = [];
+
+    const add = (snap) => {
+      snap.forEach((d) => {
+        if (!seen.has(d.id)) {
+          seen.add(d.id);
+          orders.push({ id: d.id, ...d.data() });
+        }
+      });
+    };
+
+    if (assignedSnap) add(assignedSnap);
+    if (poolSnap) add(poolSnap);
+
+    orders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    onUpdate(orders);
+  };
+
+  let latestAssignedSnap = null;
+  let latestPoolSnap = null;
+
+  const unsubAssigned = onSnapshot(
+    qAssigned,
+    (snap) => {
+      latestAssignedSnap = snap;
+      mergeAndEmit(latestAssignedSnap, latestPoolSnap);
+    },
+    (err) => console.warn("[Firestore] listenDeliveryOrders (assigned):", err.message)
+  );
+
+  const unsubPool = onSnapshot(
+    qPool,
+    (snap) => {
+      latestPoolSnap = snap;
+      mergeAndEmit(latestAssignedSnap, latestPoolSnap);
+    },
+    (err) => console.warn("[Firestore] listenDeliveryOrders (pool):", err.message)
+  );
+
+  return () => {
+    unsubAssigned();
+    unsubPool();
+  };
+}
+
+/**
+ * Assign a delivery boy to an order.
+ * Called by admin when dispatching (status: out_for_delivery).
+ * Writes deliveryBoyId, deliveryBoyName, deliveryBoyPhone, and dispatchedAt.
+ *
+ * @param {string} orderId
+ * @param {object} deliveryBoyData - { id, name, phone }
+ */
+export async function assignDeliveryBoy(orderId, deliveryBoyData = {}) {
+  if (!isFirebaseConfigured || !db) return false;
+  try {
+    await updateDoc(doc(db, COLLECTIONS.ORDERS, orderId), {
+      deliveryBoyId: deliveryBoyData.id || null,
+      deliveryBoyName: deliveryBoyData.name || null,
+      deliveryBoyPhone: deliveryBoyData.phone || null,
+      dispatchedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    return true;
+  } catch (err) {
+    console.warn("[Firestore] assignDeliveryBoy error:", err.message);
+    return false;
+  }
+}
+
+/**
+ * Delivery boy marks an order as delivered.
+ * Also marks paymentStatus as paid for COD orders.
+ * @param {string} orderId
+ * @param {object} [extra] - Optional extra fields (e.g. deliveryNotes, photoUrl)
+ */
+export async function markOrderDelivered(orderId, extra = {}) {
+  if (!isFirebaseConfigured || !db) return false;
+  try {
+    await updateDoc(doc(db, COLLECTIONS.ORDERS, orderId), {
+      status: "delivered",
+      orderStatus: "delivered",
+      paymentStatus: "paid",
+      isPaid: true,
+      deliveredAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...extra,
+    });
+    return true;
+  } catch (err) {
+    console.warn("[Firestore] markOrderDelivered error:", err.message);
+    return false;
+  }
+}
+
+/**
+ * Update live GPS coordinates of the delivery rider for an active order.
+ * Broadcasts riderLat, riderLng, heading, speed, and timestamp to customer in real-time.
+ * @param {string} orderId
+ * @param {object} trackingData - { riderLat, riderLng, heading, speed, accuracy, isSharing }
+ */
+export async function updateOrderLiveTracking(orderId, trackingData = {}) {
+  if (!isFirebaseConfigured || !db) return false;
+  try {
+    await updateDoc(doc(db, COLLECTIONS.ORDERS, orderId), {
+      liveTracking: {
+        ...trackingData,
+        updatedAt: new Date().toISOString(),
+      },
+      updatedAt: new Date().toISOString(),
+    });
+    return true;
+  } catch (err) {
+    console.warn("[Firestore] updateOrderLiveTracking error:", err.message);
+    return false;
+  }
 }
 

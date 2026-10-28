@@ -158,6 +158,16 @@ export const translations = {
     upiPaidLabel: "ऑनलाइन यूपीआई (सफल भुगतान)",
     codLabel: "नकद (Cash on Delivery)",
     specialNotesPlaceholder: "ताज़ा पिसा हुआ आटा, कृपया ध्यान से पैक करें।",
+    qrCodeSectionTitle: "आधिकारिक पेमेंट QR कोड (Chakki Payment QR Code)",
+    qrCodeSectionDesc: "दुकानदार का Google Pay / PhonePe / Paytm क्यूआर कोड — ग्राहक चेकआउट के समय सीधे इस क्यूआर कोड को स्कैन करके आपको भुगतान करेंगे।",
+    uploadQrPhotoBtn: "📷 QR कोड फोटो अपलोड करें",
+    qrUrlPlaceholder: "या QR कोड इमेज लिंक (URL) पेस्ट करें",
+    removeQrBtn: "QR हटाएं",
+    verifyPaymentBtn: "✓ UPI भुगतान सत्यापित करें व स्वीकारें",
+    acceptCodBtn: "✓ आर्डर स्वीकार करें (Accept Order)",
+    startGrindBtn: "⚙️ ठंडी पिसाई शुरू करें (Start Grinding)",
+    upiVerificationNotice: "ऑनलाइन UPI भुगतान सत्यापन प्रतीक्षित",
+    utrLabel: "ग्राहक द्वारा दर्ज UTR / Ref ID:",
 
     // Add Product Modal
     addGrainModalTitle: "नया आटा या अनाज जोड़ें",
@@ -383,6 +393,16 @@ export const translations = {
     upiPaidLabel: "Online UPI (Paid)",
     codLabel: "Cash on Delivery",
     specialNotesPlaceholder: "Fresh ground flour, please pack carefully.",
+    qrCodeSectionTitle: "Official Payment QR Code (Chakki Standee QR)",
+    qrCodeSectionDesc: "Your Google Pay / PhonePe / Paytm QR code — customers will scan this directly at checkout to pay you.",
+    uploadQrPhotoBtn: "📷 Upload QR Code Photo",
+    qrUrlPlaceholder: "or paste QR Code Image URL",
+    removeQrBtn: "Remove QR",
+    verifyPaymentBtn: "✓ Verify UPI Payment & Accept",
+    acceptCodBtn: "✓ Accept Order (COD)",
+    startGrindBtn: "⚙️ Start Cold Stone Grinding",
+    upiVerificationNotice: "Online UPI Payment Verification Pending",
+    utrLabel: "Customer Entered UTR / Ref ID:",
 
     // Add Product Modal
     addGrainModalTitle: "Add New Flour or Grain",

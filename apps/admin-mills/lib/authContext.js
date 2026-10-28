@@ -8,8 +8,8 @@ import {
   registerMillOwner as sharedRegisterMillOwner,
   logout as sharedLogout,
   DEMO_USERS,
-} from "@ladwan/firebase/auth";
-import { isFirebaseConfigured } from "@ladwan/firebase";
+} from "@ladwan/database/auth";
+import { isFirebaseConfigured } from "@ladwan/database";
 
 const AuthContext = createContext(null);
 

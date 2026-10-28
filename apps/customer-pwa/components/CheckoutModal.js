@@ -28,49 +28,78 @@ export default function CheckoutModal({
   onPlaceOrder,
   lang,
 }) {
-  const [customerName, setCustomerName] = useState(userProfile?.name || "");
+  const isDefaultName =
+    !userProfile?.name ||
+    userProfile?.name === "सोमनाथ बैद्य" ||
+    userProfile?.name === "Somnath Baidya";
+  const defaultDisplayName = isDefaultName
+    ? (lang === "hi" ? "सोमनाथ बैद्य" : "Somnath Baidya")
+    : (lang === "hi" ? userProfile?.name : (userProfile?.englishName || userProfile?.name));
+
+  const [customerName, setCustomerName] = useState(defaultDisplayName || "");
   const [customerPhone, setCustomerPhone] = useState(userProfile?.phone || "");
   const [addressLine, setAddressLine] = useState(
-    userProfile?.streetArea || currentLocation?.area || currentLocation?.name || ""
+    (lang === "hi"
+      ? (userProfile?.streetArea || currentLocation?.area || currentLocation?.name)
+      : (userProfile?.englishStreetArea || currentLocation?.englishArea || currentLocation?.name || userProfile?.streetArea)) || ""
   );
-  const [flatNumber, setFlatNumber] = useState(userProfile?.houseFlat || "");
-  const [landmark, setLandmark] = useState(userProfile?.landmark || "");
+  const [flatNumber, setFlatNumber] = useState(
+    (lang === "hi" ? userProfile?.houseFlat : (userProfile?.englishHouseFlat || userProfile?.houseFlat)) || ""
+  );
+  const [landmark, setLandmark] = useState(
+    (lang === "hi" ? userProfile?.landmark : (userProfile?.englishLandmark || userProfile?.landmark)) || ""
+  );
   const [instructions, setInstructions] = useState("");
 
   useEffect(() => {
     if (userProfile && isOpen) {
-      if (userProfile.name) setCustomerName(userProfile.name);
+      const isDefault =
+        !userProfile.name ||
+        userProfile.name === "सोमनाथ बैद्य" ||
+        userProfile.name === "Somnath Baidya";
+      const nameToShow = isDefault
+        ? (lang === "hi" ? "सोमनाथ बैद्य" : "Somnath Baidya")
+        : (lang === "hi" ? userProfile.name : (userProfile.englishName || userProfile.name));
+      if (nameToShow) setCustomerName(nameToShow);
       if (userProfile.phone) setCustomerPhone(userProfile.phone);
-      if (userProfile.houseFlat) setFlatNumber(userProfile.houseFlat);
-      if (userProfile.streetArea) setAddressLine(userProfile.streetArea);
-      if (userProfile.landmark) setLandmark(userProfile.landmark);
+      if (userProfile.houseFlat) {
+        setFlatNumber(
+          lang === "hi"
+            ? userProfile.houseFlat
+            : (userProfile.englishHouseFlat || userProfile.houseFlat)
+        );
+      }
+      if (userProfile.streetArea) {
+        setAddressLine(
+          lang === "hi"
+            ? userProfile.streetArea
+            : (userProfile.englishStreetArea || userProfile.streetArea)
+        );
+      }
+      if (userProfile.landmark) {
+        setLandmark(
+          lang === "hi"
+            ? userProfile.landmark
+            : (userProfile.englishLandmark || userProfile.landmark)
+        );
+      }
     }
-  }, [userProfile, isOpen]);
+  }, [userProfile, isOpen, lang]);
 
   const [paymentMethod, setPaymentMethod] = useState("cod"); // "cod" | "upi"
   const [transactionRef, setTransactionRef] = useState("");
-  const [isCopied, setIsCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   if (!isOpen) return null;
 
-  const millUpiId = selectedMill?.upiId || "ladwanchakki@upi";
-  const millNameEncoded = encodeURIComponent(selectedMill?.name || "Ladwan Chakki");
-  const upiIntentUrl = `upi://pay?pa=${millUpiId}&pn=${millNameEncoded}&am=${cartSummary.totalAmount}&cu=INR&tn=Ladwan%20Fresh%20Atta%20Order`;
-  const upiQrUrl =
-    selectedMill?.upiQrUrl ||
-    `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-      upiIntentUrl
-    )}`;
-
-  const handleCopyUpi = () => {
-    if (navigator?.clipboard) {
-      navigator.clipboard.writeText(millUpiId);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2500);
-    }
-  };
+  // Mill Owner provides their QR Code in their profile (not text UPI ID)
+  const defaultFallbackQr = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+    `upi://pay?pa=ladwanchakki@upi&pn=${encodeURIComponent(
+      selectedMill?.name || "Ladwan Chakki"
+    )}&am=${cartSummary.totalAmount}&cu=INR&tn=Ladwan%20Fresh%20Atta`
+  )}`;
+  const upiQrUrl = selectedMill?.upiQrUrl || defaultFallbackQr;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,8 +191,11 @@ export default function CheckoutModal({
               <h2 className="text-sm font-bold text-stone-100">
                 {lang === "hi" ? "ऑर्डर चेकआउट व डिलीवरी" : "Checkout & Fresh Delivery"}
               </h2>
-              <div className="text-[11px] text-stone-400">
-                {selectedMill?.name} • कुल देय: ₹{cartSummary.totalAmount}
+              <div className="text-[11px] text-stone-400" suppressHydrationWarning>
+                {lang === "hi"
+                  ? selectedMill?.name
+                  : selectedMill?.englishName || selectedMill?.name}{" "}
+                • {lang === "hi" ? "कुल देय" : "Total Due"}: ₹{cartSummary.totalAmount}
               </div>
             </div>
           </div>
@@ -359,87 +391,68 @@ export default function CheckoutModal({
             {paymentMethod === "upi" && (
               <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-3.5 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-stone-200">
+                  <span className="font-bold text-stone-200" suppressHydrationWarning>
                     {lang === "hi"
-                      ? `${selectedMill?.name} का आधिकारिक UPI QR`
-                      : `Official UPI QR for ${selectedMill?.name}`}
+                      ? `${selectedMill?.name} का दुकान QR कोड`
+                      : `Official Shop QR Code • ${selectedMill?.englishName || selectedMill?.name}`}
                   </span>
-                  <span className="font-black text-amber-400 text-sm">
-                    देय: ₹{cartSummary.totalAmount}
+                  <span className="font-black text-amber-400 text-sm" suppressHydrationWarning>
+                    {lang === "hi" ? "सटीक देय राशि" : "Amount"}: ₹{cartSummary.totalAmount}
                   </span>
                 </div>
 
-                {/* QR Code Graphic */}
+                {/* QR Code Graphic & Easy Scan Instructions */}
                 <div className="flex flex-col sm:flex-row items-center gap-4 bg-stone-900/80 p-3.5 rounded-2xl border border-stone-800">
-                  <div className="w-36 h-36 bg-white p-2 rounded-xl shrink-0 flex items-center justify-center shadow-md">
+                  <div className="w-36 h-36 bg-white p-2.5 rounded-2xl shrink-0 flex items-center justify-center shadow-lg border border-stone-700">
                     <img
                       src={upiQrUrl}
-                      alt="Mill UPI QR Code"
+                      alt="Mill Owner Payment QR Code"
                       className="w-full h-full object-contain"
                     />
                   </div>
 
-                  <div className="space-y-2 text-center sm:text-left min-w-0">
-                    <div className="text-[11px] text-stone-400">
+                  <div className="space-y-2 text-center sm:text-left min-w-0 flex-1">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[11px] font-bold">
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>{lang === "hi" ? "सीधा चक्की मालिक को भुगतान" : "Direct Pay to Mill Owner"}</span>
+                    </div>
+
+                    <p className="text-xs text-stone-300 font-medium leading-relaxed">
                       {lang === "hi"
-                        ? "किसी भी UPI ऐप (GPay, PhonePe, Paytm) से स्कैन करके भुगतान करें:"
-                        : "Scan using any UPI app to pay directly to mill owner:"}
-                    </div>
+                        ? "Google Pay, PhonePe, Paytm या किसी भी UPI ऐप से यह QR कोड स्कैन करें और ₹" + cartSummary.totalAmount + " का भुगतान करें।"
+                        : "Scan this QR code with any UPI app (GPay, PhonePe, Paytm) and pay ₹" + cartSummary.totalAmount + "."}
+                    </p>
 
-                    {/* Copy UPI ID Pill */}
-                    <div className="flex items-center gap-2 justify-center sm:justify-start">
-                      <code className="px-2 py-1 bg-stone-950 rounded-lg text-amber-400 text-xs font-mono font-bold border border-stone-800">
-                        {millUpiId}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={handleCopyUpi}
-                        className="px-2 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1 transition-colors"
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check className="w-3 h-3 text-emerald-400" />
-                            <span className="text-emerald-400">कॉपी हुआ</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3" />
-                            <span>कॉपी</span>
-                          </>
-                        )}
-                      </button>
+                    <div className="text-[11px] text-stone-400 flex items-center justify-center sm:justify-start gap-1">
+                      <span>✓ {lang === "hi" ? "जीरो कमीशन • 100% दुकानदार के खाते में" : "Zero fee • Instant direct payment"}</span>
                     </div>
-
-                    {/* Direct App Deep Link */}
-                    <a
-                      href={upiIntentUrl}
-                      className="inline-flex items-center gap-1.5 text-xs text-amber-400 font-bold hover:underline underline-offset-2 pt-1"
-                    >
-                      <span>UPI ऐप में खोलें (Open in UPI App)</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
                   </div>
                 </div>
 
                 {/* Transaction Ref UTR input */}
-                <div>
-                  <label className="block text-xs font-semibold text-stone-300 mb-1">
-                    {lang === "hi"
-                      ? "12 अंकों का UTR / Transaction Reference ID *"
-                      : "12-digit UTR / Transaction Reference ID *"}
-                  </label>
+                <div className="space-y-1.5 bg-stone-900/60 p-3 rounded-xl border border-stone-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-amber-300">
+                      {lang === "hi"
+                        ? "12 अंकों का UPI UTR / Transaction Reference ID *"
+                        : "12-digit UPI UTR / Reference ID *"}
+                    </label>
+                    <span className="text-[10px] text-stone-500 font-mono">12-Digit Ref</span>
+                  </div>
+
                   <input
                     type="text"
                     required={paymentMethod === "upi"}
                     value={transactionRef}
                     onChange={(e) => setTransactionRef(e.target.value)}
-                    placeholder="उदा. 428910284729"
-                    className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-700 rounded-xl text-stone-100 text-xs focus:outline-none focus:border-amber-500 font-mono tracking-wider"
+                    placeholder={lang === "hi" ? "उदा. 428910284729 (पेमेंट रसीद से)" : "e.g. 428910284729 from receipt"}
+                    className="w-full px-3.5 py-2.5 bg-stone-950 border border-amber-500/40 rounded-xl text-amber-200 text-xs focus:outline-none focus:border-amber-400 font-mono tracking-wider font-bold"
                   />
-                  <div className="text-[10px] text-stone-400 pt-1">
+
+                  <div className="text-[11px] text-stone-400 leading-normal">
                     {lang === "hi"
-                      ? "ऑर्डर स्वीकार करते समय चक्की मालिक आपके इस रेफरेंस नंबर से पेमेंट वेरिफाई करेंगे।"
-                      : "The mill owner confirms receipt of this UTR before starting fresh grinding."}
+                      ? "💡 भुगतान के बाद अपने UPI ऐप (Google Pay / PhonePe) की हिस्ट्री से 12-अंकों का UTR नंबर यहाँ दर्ज करें। चक्की मालिक अपने साउंडबॉक्स या ऐप में देखकर आर्डर स्वीकार करेंगे।"
+                      : "💡 Enter the 12-digit UTR from your UPI payment receipt. The mill owner checks this in their soundbox/app before accepting the order and starting fresh grinding."}
                   </div>
                 </div>
               </div>

@@ -11,7 +11,7 @@ import {
   Building,
   Navigation,
 } from "lucide-react";
-import { PRESET_LOCALITIES } from "@ladwan/firebase/schemas";
+import { PRESET_LOCALITIES } from "@ladwan/database/schemas";
 import { getCurrentGpsPosition } from "../lib/geo";
 
 export default function LocationModal({

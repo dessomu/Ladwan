@@ -1,7 +1,7 @@
 // apps/customer-pwa/lib/geo.js - Hyperlocal Geolocation & Distance Helpers
 // Calculates accurate Haversine distance, travel time, and manages preset localities.
 
-import { PRESET_LOCALITIES, DELIVERY_POLICY } from "@ladwan/firebase/schemas";
+import { PRESET_LOCALITIES, DELIVERY_POLICY } from "@ladwan/database/schemas";
 
 /**
  * Calculates Haversine great-circle distance between two GPS coordinates in kilometers.
@@ -95,17 +95,17 @@ export function calculateDeliveryFee(subtotal = 0) {
 }
 
 /**
- * Default pinned location: Sonarpur, Kolkata
+ * Default pinned location: Greenfield City, Sonarpur, Kolkata (~1.2 km from Mill)
  */
-export const DEFAULT_LOCATION = PRESET_LOCALITIES[0] || {
-  id: "sonarpur_kolkata",
-  name: "Sonarpur, Kolkata",
-  hindiName: "सोनारपुर, कोलकाता",
-  area: "Station Road, Sonarpur",
+export const DEFAULT_LOCATION = {
+  id: "sonarpur_greenfield",
+  name: "Greenfield City, Sonarpur",
+  hindiName: "ग्रीनफील्ड सिटी, सोनारपुर",
+  area: "Greenfield City, Sonarpur",
   city: "Kolkata",
   pincode: "700150",
-  lat: 22.4385,
-  lng: 88.4022,
+  lat: 22.4435,
+  lng: 88.4128,
 };
 
 /**

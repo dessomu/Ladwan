@@ -13,6 +13,7 @@ import CheckoutModal from "../components/CheckoutModal";
 import OrderTrackingView from "../components/OrderTrackingView";
 import RatingModal from "../components/RatingModal";
 import UserProfileModal from "../components/UserProfileModal";
+import VerticalItemsCarousel from "../components/VerticalItemsCarousel";
 import PWAInstallBanner from "../components/PWAInstallBanner";
 import BottomNavigation from "../components/BottomNavigation";
 import { useCustomerStore } from "../lib/customerStore";
@@ -136,7 +137,7 @@ export default function ConsumerPwaHome() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-3.5 sm:px-6 py-4 pb-28 sm:pb-16">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-2.5 sm:py-4 pb-24 sm:pb-16">
         {/* Freshness & On-Demand Milling Banner */}
         <FreshnessBanner
           selectedMill={selectedMill}
@@ -192,25 +193,25 @@ export default function ConsumerPwaHome() {
             </div>
           )}
 
-        {/* Dual Browsing Mode Strip (Atta & Grains vs Nearby Chakkis) */}
-        <div className="mb-6">
-          <div className="flex items-center p-1 rounded-2xl bg-stone-900/80 border border-stone-800 shadow-lg">
-            {/* Mode 1: Atta & Grains */}
+        {/* Dual Browsing Mode Strip (Atta vs Chakkis - Compact) */}
+        <div className="mb-3.5 sm:mb-6">
+          <div className="flex items-center p-1 rounded-xl sm:rounded-2xl bg-stone-900/80 border border-stone-800 shadow-md">
+            {/* Mode 1: Fresh Atta */}
             <button
               type="button"
               onClick={() => {
                 setBrowseMode("flours");
                 setActiveMobileTab("store");
               }}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 py-1.5 sm:py-2 px-2.5 sm:px-3 rounded-lg sm:rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                 browseMode === "flours"
                   ? "bg-amber-500 text-stone-950 shadow-md shadow-amber-500/20"
                   : "text-stone-400 hover:text-stone-200 hover:bg-stone-800/40"
               }`}
             >
-              <Wheat className="w-4 h-4" />
+              <Wheat className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span suppressHydrationWarning>
-                {lang === "hi" ? "ताज़ा आटा व अनाज" : "Fresh Atta & Grains"}
+                {lang === "hi" ? "ताज़ा आटा" : "Fresh Atta"}
               </span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
@@ -223,22 +224,22 @@ export default function ConsumerPwaHome() {
               </span>
             </button>
 
-            {/* Mode 2: Nearby Mills */}
+            {/* Mode 2: Chakkis */}
             <button
               type="button"
               onClick={() => {
                 setBrowseMode("mills");
                 setActiveMobileTab("chakkis");
               }}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 py-1.5 sm:py-2 px-2.5 sm:px-3 rounded-lg sm:rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                 browseMode === "mills"
                   ? "bg-amber-500 text-stone-950 shadow-md shadow-amber-500/20"
                   : "text-stone-400 hover:text-stone-200 hover:bg-stone-800/40"
               }`}
             >
-              <Store className="w-4 h-4" />
+              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span suppressHydrationWarning>
-                {lang === "hi" ? "आस-पास की चक्कियां" : "Nearby Chakkis"}
+                {lang === "hi" ? "चक्कियां" : "Chakkis"}
               </span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
@@ -263,24 +264,32 @@ export default function ConsumerPwaHome() {
               lang={lang}
             />
 
+            {/* Vertical Items Carousel (Trending Staples: Atta, Sattu, Besan) */}
+            <VerticalItemsCarousel
+              onAddToCart={addToCart}
+              cartItems={cart}
+              onSelectCategory={setSelectedCategory}
+              lang={lang}
+            />
+
             {/* Product Catalog Grid */}
             <section>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <div>
-                  <h2 className="text-base sm:text-lg font-black text-stone-100 flex items-center gap-2">
+                  <h2 className="text-sm sm:text-lg font-black text-stone-100 flex items-center gap-1.5 sm:gap-2">
                     <span suppressHydrationWarning>
                       {lang === "hi"
                         ? "ताज़ा पिसा आटा, सत्तू व अनाज"
                         : "Fresh Stone-Ground Atta & Grains"}
                     </span>
-                    <span className="text-xs font-normal text-stone-400">
+                    <span className="text-[11px] sm:text-xs font-normal text-stone-400">
                       ({filteredProducts.length} {lang === "hi" ? "विकल्प" : "items"})
                     </span>
                   </h2>
-                  <p className="text-xs text-stone-400" suppressHydrationWarning>
+                  <p className="text-[11px] sm:text-xs text-stone-400" suppressHydrationWarning>
                     {lang === "hi"
                       ? `${selectedMill?.name || "स्थानीय चक्की"} से 100% शुद्ध ताजी पिसाई`
-                      : `Ground fresh on order from ${selectedMill?.name || "hyper-local chakki"}`}
+                      : `Ground fresh on order from ${selectedMill?.englishName || selectedMill?.name || "hyper-local chakki"}`}
                   </p>
                 </div>
 
@@ -406,17 +415,21 @@ export default function ConsumerPwaHome() {
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="font-extrabold text-stone-100 text-base leading-snug">
-                                {mill.name}
+                              <h3 className="font-extrabold text-stone-100 text-base leading-snug" suppressHydrationWarning>
+                                {lang === "hi"
+                                  ? mill.name
+                                  : mill.englishName || mill.name}
                               </h3>
                               {isSelected && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-stone-950 font-black">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-stone-950 font-black" suppressHydrationWarning>
                                   {lang === "hi" ? "सक्रिय चक्की" : "Active Mill"}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-amber-400 font-medium mt-0.5">
-                              {mill.tagline}
+                            <p className="text-xs text-amber-400 font-medium mt-0.5" suppressHydrationWarning>
+                              {lang === "hi"
+                                ? mill.tagline
+                                : mill.englishTagline || mill.tagline}
                             </p>
                           </div>
 
@@ -427,9 +440,13 @@ export default function ConsumerPwaHome() {
                         </div>
 
                         {/* Address */}
-                        <div className="text-xs text-stone-400 flex items-center gap-1.5 mb-3">
+                        <div className="text-xs text-stone-400 flex items-center gap-1.5 mb-3" suppressHydrationWarning>
                           <MapPin className="w-3.5 h-3.5 text-stone-500 shrink-0" />
-                          <span className="truncate">{mill.address || mill.area}</span>
+                          <span className="truncate">
+                            {lang === "hi"
+                              ? (mill.address || mill.area)
+                              : (mill.englishAddress || mill.englishArea || mill.area || mill.address)}
+                          </span>
                         </div>
 
                         {/* Key badges strip */}
@@ -439,13 +456,18 @@ export default function ConsumerPwaHome() {
                             <span>{mill.eta || "30-40 min"} ETA</span>
                           </span>
 
-                          <span className="px-2.5 py-1 rounded-lg bg-stone-950/80 text-stone-300 font-semibold border border-stone-800 flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-lg bg-stone-950/80 text-stone-300 font-semibold border border-stone-800 flex items-center gap-1" suppressHydrationWarning>
                             <MapPin className="w-3 h-3 text-amber-400" />
-                            <span>{mill.formattedDistance || "1.2 km"} दूर</span>
+                            <span>
+                              {mill.formattedDistance || "1.2 km"}{" "}
+                              {lang === "hi" ? "दूर" : "away"}
+                            </span>
                           </span>
 
-                          <span className="px-2.5 py-1 rounded-lg bg-emerald-950/50 text-emerald-400 font-semibold border border-emerald-900/40">
-                            {mill.stoneType || "Natural Stone (ठंडी पिसाई)"}
+                          <span className="px-2.5 py-1 rounded-lg bg-emerald-950/50 text-emerald-400 font-semibold border border-emerald-900/40" suppressHydrationWarning>
+                            {lang === "hi"
+                              ? (mill.stoneType || "Natural Stone (ठंडी पिसाई)")
+                              : (mill.englishStoneType || "Natural Stone (Cold Milled)")}
                           </span>
                         </div>
                       </div>
@@ -534,8 +556,8 @@ export default function ConsumerPwaHome() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-stone-900 bg-stone-950 text-stone-500 py-6 px-4 text-center text-xs">
+      {/* Footer (Hidden on mobile devices per UX specs) */}
+      <footer className="hidden sm:block border-t border-stone-900 bg-stone-950 text-stone-500 py-6 px-4 text-center text-xs">
         <div className="max-w-4xl mx-auto space-y-2">
           <div className="font-semibold text-stone-400" suppressHydrationWarning>
             {lang === "hi"

@@ -27,8 +27,16 @@ export default function UserProfileModal({
   onToggleLang,
   onResetData,
 }) {
+  const isDefaultName =
+    !userProfile?.name ||
+    userProfile?.name === "सोमनाथ बैद्य" ||
+    userProfile?.name === "Somnath Baidya";
+  const initialDisplayName = isDefaultName
+    ? (lang === "hi" ? "सोमनाथ बैद्य" : "Somnath Baidya")
+    : (lang === "hi" ? userProfile?.name : (userProfile?.englishName || userProfile?.name));
+
   const [formData, setFormData] = useState({
-    name: userProfile?.name || "",
+    name: initialDisplayName || "",
     phone: userProfile?.phone || "",
     houseFlat: userProfile?.houseFlat || "",
     streetArea: userProfile?.streetArea || "",
@@ -39,23 +47,54 @@ export default function UserProfileModal({
 
   useEffect(() => {
     if (userProfile) {
+      const isDefault =
+        !userProfile.name ||
+        userProfile.name === "सोमनाथ बैद्य" ||
+        userProfile.name === "Somnath Baidya";
+      const displayName = isDefault
+        ? (lang === "hi" ? "सोमनाथ बैद्य" : "Somnath Baidya")
+        : (lang === "hi" ? userProfile.name : (userProfile.englishName || userProfile.name));
+
       setFormData({
-        name: userProfile.name || "",
+        name: displayName,
         phone: userProfile.phone || "",
-        houseFlat: userProfile.houseFlat || "",
-        streetArea: userProfile.streetArea || "",
-        landmark: userProfile.landmark || "",
+        houseFlat:
+          lang === "hi"
+            ? (userProfile.houseFlat || "फ्लैट 3B, शांति निकेतन")
+            : (userProfile.englishHouseFlat || "Flat 3B, Shanti Niketan"),
+        streetArea:
+          lang === "hi"
+            ? (userProfile.streetArea || "स्टेशन रोड, सोनारपुर")
+            : (userProfile.englishStreetArea || "Station Road, Sonarpur"),
+        landmark:
+          lang === "hi"
+            ? (userProfile.landmark || "सोनारपुर रेलवे स्टेशन के निकट")
+            : (userProfile.englishLandmark || "Near Sonarpur Railway Station"),
         defaultGrind: userProfile.defaultGrind || "बारीक (रोटी)",
       });
     }
-  }, [userProfile, isOpen]);
+  }, [userProfile, isOpen, lang]);
 
   if (!isOpen) return null;
 
   const handleSave = (e) => {
     e.preventDefault();
     if (onUpdateProfile) {
-      onUpdateProfile(formData);
+      if (lang === "hi") {
+        onUpdateProfile({
+          ...formData,
+          name: formData.name,
+        });
+      } else {
+        onUpdateProfile({
+          ...formData,
+          englishName: formData.name,
+          name:
+            userProfile?.name && userProfile?.name !== "Somnath Baidya"
+              ? userProfile.name
+              : formData.name,
+        });
+      }
     }
     setSavedSuccess(true);
     setTimeout(() => {

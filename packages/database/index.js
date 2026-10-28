@@ -1,4 +1,4 @@
-// @ladwan/firebase - Centralized Firebase App Initialization
+// @ladwan/database - Centralized Firebase App Initialization
 // Single point of truth for all 4 Ladwan apps.
 // Apps should import db, auth, storage from this package, NOT initialize their own.
 //

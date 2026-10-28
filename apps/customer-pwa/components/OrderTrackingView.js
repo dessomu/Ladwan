@@ -17,8 +17,23 @@ import {
   ShieldCheck,
   Ban,
   Star,
+  QrCode,
+  Banknote,
 } from "lucide-react";
-import { ORDER_TRACKING_STEPS } from "@ladwan/firebase/schemas";
+import { ORDER_TRACKING_STEPS } from "@ladwan/database/schemas";
+import dynamic from "next/dynamic";
+
+const CustomerLiveTrackingMap = dynamic(
+  () => import("./CustomerLiveTrackingMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 rounded-3xl bg-stone-950 border border-stone-800 flex items-center justify-center text-xs text-stone-400 animate-pulse mb-4">
+        लाइव डिलीवरी मैप लोड हो रहा है (Loading Live Map)...
+      </div>
+    ),
+  }
+);
 
 export default function OrderTrackingView({
   isOpen = true,
@@ -87,8 +102,11 @@ export default function OrderTrackingView({
                   #{order.orderNumber || order.id?.substring(0, 8)}
                 </span>
               </div>
-              <div className="text-[11px] text-stone-400">
-                {order.millName} • कुल देय: ₹{order.totalAmount}
+              <div className="text-[11px] text-stone-400" suppressHydrationWarning>
+                {lang === "hi"
+                  ? order.millName
+                  : order.millEnglishName || order.millName}{" "}
+                • {lang === "hi" ? "कुल देय" : "Total Due"}: ₹{order.totalAmount}
               </div>
             </div>
           </div>
@@ -155,6 +173,119 @@ export default function OrderTrackingView({
                 </span>
               </button>
             </div>
+          )}
+
+          {/* Payment Verification & Order Acknowledgement Status Banner */}
+          {!isCancelled && !isDelivered && (
+            <div className="space-y-2">
+              {order.paymentMethod === "upi" ? (
+                order.paymentStatus === "payment_verification_pending" ? (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/70 via-stone-900 to-amber-950/40 border border-amber-500/50 text-xs space-y-2 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <span className="font-bold text-amber-300 text-sm">
+                          {lang === "hi"
+                            ? "चक्की मालिक द्वारा UPI पेमेंट सत्यापन जारी..."
+                            : "UPI Payment Verification in Progress..."}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                        VERIFYING
+                      </span>
+                    </div>
+
+                    {order.transactionRef && (
+                      <div className="flex items-center gap-2 bg-stone-950/80 px-3 py-1.5 rounded-xl border border-stone-800 text-stone-300 text-[11px]">
+                        <span className="text-stone-400">
+                          {lang === "hi" ? "आपका दर्ज UTR:" : "Your UTR:"}
+                        </span>
+                        <span className="font-mono font-bold text-amber-200 tracking-wider">
+                          {order.transactionRef}
+                        </span>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-stone-300 leading-relaxed">
+                      {lang === "hi"
+                        ? "चक्की मालिक अपने साउंडबॉक्स या UPI ऐप में आपका UTR चेक कर रहे हैं। सत्यापन पूरा होते ही ताज़ी पत्थर पिसाई शुरू हो जाएगी।"
+                        : "The chakki owner is checking your UTR on their soundbox/app. Fresh cold stone milling starts as soon as payment is confirmed."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-stone-900 to-emerald-950/40 border border-emerald-500/50 text-xs space-y-1.5 shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-300 font-bold text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>
+                          {lang === "hi"
+                            ? "✓ UPI भुगतान सत्यापित व आर्डर स्वीकृत!"
+                            : "✓ Payment Verified & Order Accepted!"}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                        PAID & CONFIRMED
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-300 leading-relaxed">
+                      {lang === "hi"
+                        ? "चक्की मालिक ने पेमेंट स्वीकार कर लिया है और आपके ताज़े आटे की पिसाई जारी है।"
+                        : "The mill owner has verified your payment and begun fresh stone grinding."}
+                    </p>
+                  </div>
+                )
+              ) : (
+                /* Cash on Delivery banner */
+                currentStatus === "placed" ? (
+                  <div className="p-3.5 rounded-2xl bg-stone-950/90 border border-stone-800 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-stone-200 font-bold">
+                        <Clock className="w-4 h-4 text-amber-400" />
+                        <span>
+                          {lang === "hi"
+                            ? "चक्की मालिक द्वारा आर्डर स्वीकृति प्रतीक्षित..."
+                            : "Awaiting Mill Order Confirmation..."}
+                        </span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-stone-800 text-stone-300 border border-stone-700">
+                        COD
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-400">
+                      {lang === "hi"
+                        ? `घर पहुंचने पर ₹${order.totalAmount} नकद या UPI द्वारा दें।`
+                        : `Pay ₹${order.totalAmount} at your doorstep via Cash or UPI.`}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-stone-950/90 border border-emerald-500/30 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-300 font-bold">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>
+                          {lang === "hi"
+                            ? "✓ चक्की मालिक ने आर्डर स्वीकार किया"
+                            : "✓ Order Accepted by Mill"}
+                        </span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
+                        COD CONFIRMED
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-400">
+                      {lang === "hi"
+                        ? `डिलीवरी के समय ₹${order.totalAmount} नकद या डिलीवरी बॉय के QR कोड पर दें।`
+                        : `Pay ₹${order.totalAmount} at doorstep to delivery partner via Cash/UPI.`}
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Live GPS Delivery Map (Swiggy / Blinkit style) */}
+          {(currentStatus === "out_for_delivery" || order.liveTracking) && !isCancelled && !isDelivered && (
+            <CustomerLiveTrackingMap order={order} lang={lang} />
           )}
 
           {/* Real-Time Linear 6-Stage Progression Stepper */}
@@ -269,8 +400,10 @@ export default function OrderTrackingView({
                 <div className="text-[10px] text-stone-400 uppercase tracking-wider font-bold">
                   {lang === "hi" ? "चक्की का विवरण" : "Milling Partner"}
                 </div>
-                <div className="text-xs font-bold text-stone-100 truncate">
-                  {order.millName}
+                <div className="text-xs font-bold text-stone-100 truncate" suppressHydrationWarning>
+                  {lang === "hi"
+                    ? order.millName
+                    : order.millEnglishName || order.millName}
                 </div>
                 <div className="text-[11px] text-stone-400">
                   {order.millPhone || "+91 98765 43210"}
@@ -322,8 +455,20 @@ export default function OrderTrackingView({
           <div className="space-y-2 pt-2 border-t border-stone-800">
             <div className="text-[11px] font-bold text-stone-400 uppercase tracking-wider flex items-center justify-between">
               <span>{lang === "hi" ? "ऑर्डर किए गए उत्पाद" : "Order Items"}</span>
-              <span className="text-amber-400 font-bold">
-                {order.paymentMethod?.toUpperCase()} • {order.paymentStatus === "payment_verification_pending" ? "UPI सत्यापन जारी" : "भुगतान स्थिति: " + order.paymentStatus}
+              <span className={`font-bold px-2 py-0.5 rounded-md text-[10px] ${
+                order.paymentStatus === "paid"
+                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                  : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+              }`}>
+                {order.paymentMethod === "upi" ? (
+                  order.paymentStatus === "paid"
+                    ? (lang === "hi" ? "UPI (सत्यापित व प्राप्त)" : "UPI (Paid & Verified)")
+                    : (lang === "hi" ? "UPI (सत्यापन जारी)" : "UPI (Verifying)")
+                ) : (
+                  order.paymentStatus === "paid"
+                    ? (lang === "hi" ? "COD (भुगतान संपन्न)" : "COD (Paid)")
+                    : (lang === "hi" ? "कैश ऑन डिलीवरी (देय)" : "Cash on Delivery")
+                )}
               </span>
             </div>
 
@@ -334,7 +479,9 @@ export default function OrderTrackingView({
                   className="p-2.5 rounded-xl bg-stone-950/50 border border-stone-800 flex items-center justify-between text-xs text-stone-200"
                 >
                   <div>
-                    <div className="font-bold">{it.name}</div>
+                    <div className="font-bold" suppressHydrationWarning>
+                      {lang === "hi" ? it.name : (it.englishName || it.name)}
+                    </div>
                     <div className="text-[10px] text-stone-400">
                       {it.weightKey || it.quantityKg + " kg"} • {it.grindOption}
                     </div>

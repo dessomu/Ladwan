@@ -1,8 +1,8 @@
-// Re-exported from centralized @ladwan/firebase package
+// Re-exported from centralized @ladwan/database package
 export {
   INITIAL_MILL,
   INITIAL_PRODUCTS,
   INITIAL_ORDERS,
   INITIAL_METRICS,
   MASTER_CATALOG,
-} from "@ladwan/firebase/seed";
+} from "@ladwan/database/seed";

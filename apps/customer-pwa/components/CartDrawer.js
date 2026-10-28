@@ -39,12 +39,16 @@ export default function CartDrawer({
             <div>
               <h2 className="text-sm font-bold text-stone-100 flex items-center gap-2">
                 <span>{lang === "hi" ? "आपकी टोकरी" : "Your Fresh Cart"}</span>
-                <span className="px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 text-[10px] font-bold">
-                  {cartSummary.totalItems} आइटम ({cartSummary.totalKg} kg)
+                <span className="px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 text-[10px] font-bold" suppressHydrationWarning>
+                  {cartSummary.totalItems} {lang === "hi" ? "आइटम" : "items"} ({cartSummary.totalKg} kg)
                 </span>
               </h2>
-              <div className="text-[11px] text-stone-400">
-                {selectedMill ? selectedMill.name : "स्थानीय आटा चक्की"}
+              <div className="text-[11px] text-stone-400" suppressHydrationWarning>
+                {selectedMill
+                  ? (lang === "hi"
+                      ? selectedMill.name
+                      : selectedMill.englishName || selectedMill.name)
+                  : (lang === "hi" ? "स्थानीय आटा चक्की" : "Local Atta Chakki")}
               </div>
             </div>
           </div>
@@ -123,8 +127,10 @@ export default function CartDrawer({
                     />
                   </div>
                   <div className="min-w-0 space-y-0.5">
-                    <h4 className="text-xs font-bold text-stone-100 truncate">
-                      {item.name}
+                    <h4 className="text-xs font-bold text-stone-100 truncate" suppressHydrationWarning>
+                      {lang === "hi"
+                        ? item.name
+                        : item.englishName || item.name}
                     </h4>
                     <div className="text-[11px] text-amber-400 font-semibold">
                       {item.weightKey} ({item.kgPerUnit} kg) • {item.grindOption}

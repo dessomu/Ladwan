@@ -1,4 +1,4 @@
-// @ladwan/firebase - Shared Firestore Collection Names, Role Constants & Status Enums
+// @ladwan/database - Shared Firestore Collection Names, Role Constants & Status Enums
 // Used by all 4 Ladwan apps: admin-mills, customer-pwa, delivery-boy, super-admin
 
 // ── Firestore Collection Names ──────────────────────────────────────────────
@@ -88,6 +88,7 @@ export const PAYMENT_METHODS = {
 export const PAYMENT_STATUS = {
   PENDING: "pending",
   VERIFICATION_PENDING: "payment_verification_pending",
+  COD_PENDING: "cod_pending",
   PAID: "paid",
   FAILED: "failed",
 };

@@ -1,4 +1,4 @@
-// Re-exported from centralized @ladwan/firebase/firestore
+// Re-exported from centralized @ladwan/database/firestore
 import {
   saveMill,
   getMill,
@@ -9,7 +9,7 @@ import {
   updateOrderStatus,
   saveOrder,
   seedMillToFirestore,
-} from "@ladwan/firebase/firestore";
+} from "@ladwan/database/firestore";
 
 export const firestoreSync = {
   saveMill,

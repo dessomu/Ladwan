@@ -1,4 +1,4 @@
-// @ladwan/firebase - Canonical Ladwan demo seed data
+// @ladwan/database - Canonical Ladwan demo seed data
 // Shared across admin-mills, customer-pwa, delivery-boy, super-admin.
 // admin-mills/lib/seedData.js re-exports from this file.
 
@@ -89,6 +89,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 38,
+      "2kg": 75,
       "5kg": 185,
       "10kg": 360,
     },
@@ -113,6 +114,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 48,
+      "2kg": 95,
       "5kg": 235,
       "10kg": 460,
     },
@@ -137,6 +139,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 42,
+      "2kg": 83,
       "5kg": 205,
       "10kg": 395,
     },
@@ -161,6 +164,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 68,
+      "2kg": 134,
       "5kg": 330,
       "10kg": 640,
     },
@@ -185,6 +189,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 110,
+      "2kg": 218,
       "5kg": 540,
       "10kg": 1050,
     },
@@ -209,6 +214,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 95,
+      "2kg": 188,
       "5kg": 460,
       "10kg": 900,
     },
@@ -233,6 +239,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 52,
+      "2kg": 102,
       "5kg": 250,
       "10kg": 490,
     },
@@ -257,6 +264,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 44,
+      "2kg": 86,
       "5kg": 210,
       "10kg": 410,
     },
@@ -281,6 +289,7 @@ export const INITIAL_PRODUCTS = [
     isAvailable: true,
     prices: {
       "1kg": 8,
+      "2kg": 16,
       "5kg": 40,
       "10kg": 80,
     },
@@ -310,6 +319,7 @@ export const MASTER_CATALOG = [
     isAvailable: true,
     prices: {
       "1kg": 55,
+      "2kg": 108,
       "5kg": 270,
       "10kg": 530,
     },
@@ -334,6 +344,7 @@ export const MASTER_CATALOG = [
     isAvailable: true,
     prices: {
       "1kg": 85,
+      "2kg": 168,
       "5kg": 415,
       "10kg": 810,
     },
@@ -358,6 +369,7 @@ export const MASTER_CATALOG = [
     isAvailable: true,
     prices: {
       "1kg": 60,
+      "2kg": 118,
       "5kg": 290,
       "10kg": 570,
     },
@@ -382,6 +394,7 @@ export const MASTER_CATALOG = [
     isAvailable: true,
     prices: {
       "1kg": 46,
+      "2kg": 90,
       "5kg": 220,
       "10kg": 430,
     },
@@ -406,6 +419,7 @@ export const MASTER_CATALOG = [
     isAvailable: true,
     prices: {
       "1kg": 48,
+      "2kg": 94,
       "5kg": 230,
       "10kg": 450,
     },

@@ -61,21 +61,29 @@ export default function MillSelectorModal({
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-stone-100 text-sm">
-                        {mill.name}
+                      <h3 className="font-bold text-stone-100 text-sm" suppressHydrationWarning>
+                        {lang === "hi"
+                          ? mill.name
+                          : mill.englishName || mill.name}
                       </h3>
                       {isSelected && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-stone-950 font-black">
-                          सक्रिय / Selected
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-stone-950 font-black" suppressHydrationWarning>
+                          {lang === "hi" ? "सक्रिय" : "Selected"}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-amber-400 font-medium">
-                      {mill.tagline}
+                    <p className="text-xs text-amber-400 font-medium" suppressHydrationWarning>
+                      {lang === "hi"
+                        ? mill.tagline
+                        : mill.englishTagline || mill.tagline}
                     </p>
-                    <div className="text-[11px] text-stone-400 flex items-center gap-1.5 pt-1">
+                    <div className="text-[11px] text-stone-400 flex items-center gap-1.5 pt-1" suppressHydrationWarning>
                       <MapPin className="w-3.5 h-3.5 text-stone-500 shrink-0" />
-                      <span>{mill.address || mill.area}</span>
+                      <span>
+                        {lang === "hi"
+                          ? (mill.address || mill.area)
+                          : (mill.englishAddress || mill.englishArea || mill.area || mill.address)}
+                      </span>
                     </div>
                   </div>
                   {isSelected && (
@@ -92,13 +100,18 @@ export default function MillSelectorModal({
                     <span>{mill.eta || "30-40 min"} ETA</span>
                   </span>
 
-                  <span className="px-2 py-0.5 rounded-md bg-stone-800 text-stone-300 font-semibold flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-md bg-stone-800 text-stone-300 font-semibold flex items-center gap-1" suppressHydrationWarning>
                     <MapPin className="w-3 h-3 text-amber-400" />
-                    <span>{mill.formattedDistance || "1.2 km"} दूर</span>
+                    <span>
+                      {mill.formattedDistance || "1.2 km"}{" "}
+                      {lang === "hi" ? "दूर" : "away"}
+                    </span>
                   </span>
 
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-400 font-semibold border border-emerald-900/40">
-                    {mill.stoneType || "Natural Stone (ठंडी पिसाई)"}
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-400 font-semibold border border-emerald-900/40" suppressHydrationWarning>
+                    {lang === "hi"
+                      ? (mill.stoneType || "Natural Stone (ठंडी पिसाई)")
+                      : (mill.englishStoneType || "Natural Stone (Cold Milled)")}
                   </span>
 
                   <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-semibold flex items-center gap-1">

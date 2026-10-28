@@ -424,16 +424,23 @@ export default function RateBoard({
                   </span>
                 </div>
 
-                {/* 3 Size Price Tiles with Edit Price / OK Toggle */}
-                <div className="grid grid-cols-3 gap-2">
-                  {["1kg", "5kg", "10kg"].map((weightKey) => {
-                    const price = product.prices?.[weightKey] ?? 0;
+                {/* 4 Size Price Tiles (1kg, 2kg, 5kg, 10kg) with Edit Price / OK Toggle */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {["1kg", "2kg", "5kg", "10kg"].map((weightKey) => {
+                    const price =
+                      product.prices?.[weightKey] != null && Number(product.prices[weightKey]) > 0
+                        ? Number(product.prices[weightKey])
+                        : weightKey === "2kg" && product.prices?.["1kg"]
+                        ? Math.round(Number(product.prices["1kg"]) * 2)
+                        : 0;
                     const isMillingService = product.category === "Services";
                     const isEditing = editingItem === `${product.id}_${weightKey}`;
 
                     const perKgRate =
                       weightKey === "1kg"
                         ? price
+                        : weightKey === "2kg"
+                        ? Math.round(price / 2)
                         : weightKey === "5kg"
                         ? Math.round(price / 5)
                         : Math.round(price / 10);

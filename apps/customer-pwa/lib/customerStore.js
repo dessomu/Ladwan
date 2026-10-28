@@ -2,23 +2,24 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { isFirebaseConfigured } from "@ladwan/firebase";
+import { isFirebaseConfigured } from "@ladwan/database";
 import {
   listenActiveMills,
   createCustomerOrder,
   listenOrder,
   cancelCustomerOrder,
   submitReview,
-} from "@ladwan/firebase/firestore";
+  listenInventory,
+} from "@ladwan/database/firestore";
 import {
   ORDER_STATUS,
   PRESET_LOCALITIES,
-} from "@ladwan/firebase/schemas";
+} from "@ladwan/database/schemas";
 
 import {
   ALL_SEED_MILLS,
   INITIAL_PRODUCTS,
-} from "@ladwan/firebase/seed";
+} from "@ladwan/database/seed";
 
 import {
   calculateDistanceKm,
@@ -42,11 +43,16 @@ const STORAGE_KEYS = {
 
 const DEFAULT_PROFILE = {
   name: "सोमनाथ बैद्य",
-  phone: "9876543210",
-  houseFlat: "फ्लैट 3B, शांति निकेतन",
+  englishName: "Somnath Baidya",
+  phone: "8918119210",
+  houseFlat: "फ्लैट 4B, ग्रीनफील्ड सिटी",
+  englishHouseFlat: "Flat 4B, Greenfield City",
   streetArea: "स्टेशन रोड, सोनारपुर",
+  englishStreetArea: "Station Road, Sonarpur",
   landmark: "सोनारपुर रेलवे स्टेशन के निकट",
+  englishLandmark: "Near Sonarpur Railway Station",
   defaultGrind: "बारीक (रोटी)",
+  englishDefaultGrind: "Fine (Roti)",
 };
 
 function getStoredJson(key, fallback) {
@@ -66,23 +72,100 @@ function setStoredJson(key, val) {
   } catch {}
 }
 
+export function calculatePrice(pricesOrProduct, weightKey = "5kg") {
+  const kg =
+    weightKey === "1kg"
+      ? 1
+      : weightKey === "2kg"
+      ? 2
+      : weightKey === "5kg"
+      ? 5
+      : weightKey === "10kg"
+      ? 10
+      : 1;
+
+  if (!pricesOrProduct) return 45 * kg;
+
+  let prices = pricesOrProduct;
+  let singlePrice = 0;
+
+  if (typeof pricesOrProduct === "object") {
+    if (pricesOrProduct.prices && typeof pricesOrProduct.prices === "object") {
+      prices = pricesOrProduct.prices;
+    }
+    if (pricesOrProduct.price != null && Number(pricesOrProduct.price) > 0) {
+      singlePrice = Number(pricesOrProduct.price);
+    }
+  } else if (typeof pricesOrProduct === "number" && pricesOrProduct > 0) {
+    singlePrice = pricesOrProduct;
+  }
+
+  // 1. Direct match in prices object
+  if (prices && typeof prices === "object") {
+    if (prices[weightKey] != null && Number(prices[weightKey]) > 0) {
+      return Number(prices[weightKey]);
+    }
+    if (prices["1kg"] != null && Number(prices["1kg"]) > 0) {
+      return Math.round(Number(prices["1kg"]) * kg);
+    }
+    if (prices["5kg"] != null && Number(prices["5kg"]) > 0) {
+      return Math.round((Number(prices["5kg"]) / 5) * kg);
+    }
+    if (prices["10kg"] != null && Number(prices["10kg"]) > 0) {
+      return Math.round((Number(prices["10kg"]) / 10) * kg);
+    }
+    if (prices["2kg"] != null && Number(prices["2kg"]) > 0) {
+      return Math.round((Number(prices["2kg"]) / 2) * kg);
+    }
+  }
+
+  // 2. Single price fallback
+  if (singlePrice > 0) {
+    return Math.round((singlePrice / 5) * kg);
+  }
+
+  // 3. Absolute fallback
+  return 45 * kg;
+}
+
 export function useCustomerStore() {
   const [isClient, setIsClient] = useState(false);
   const [lang, setLang] = useState("hi");
 
   // Predictable initial states identical on SSR and initial client render
   const [location, setLocationState] = useState(DEFAULT_LOCATION);
-  const [allMills, setAllMills] = useState(ALL_SEED_MILLS);
-  const [selectedMillId, setSelectedMillIdState] = useState("mill_annapurna_sonarpur_01");
+  const [allMills, setAllMills] = useState([]);
+  const [selectedMillId, setSelectedMillIdState] = useState(null);
   const [cart, setCartState] = useState([]);
   const [activeOrderId, setActiveOrderIdState] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
   const [orderHistory, setOrderHistory] = useState([]);
   const [userProfile, setUserProfileState] = useState(DEFAULT_PROFILE);
+  const [adminProducts, setAdminProducts] = useState(null);
 
   // Client hydration safely executed after initial mount
   useEffect(() => {
     setIsClient(true);
+    const loadLocalAdminProducts = () => {
+      try {
+        const raw = localStorage.getItem("ladwan_admin_products_v2");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAdminProducts(parsed);
+          }
+        }
+      } catch (e) {}
+    };
+    loadLocalAdminProducts();
+
+    const handleStorage = (e) => {
+      if (e.key === "ladwan_admin_products_v2") {
+        loadLocalAdminProducts();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("ladwan:admin-store-updated", loadLocalAdminProducts);
     const savedLoc = getStoredJson(STORAGE_KEYS.LOCATION, null);
     if (savedLoc) setLocationState(savedLoc);
 
@@ -102,7 +185,23 @@ export function useCustomerStore() {
     if (savedLang) setLang(savedLang);
 
     const savedProfile = getStoredJson(STORAGE_KEYS.PROFILE, null);
-    if (savedProfile) setUserProfileState(savedProfile);
+    if (savedProfile) {
+      setUserProfileState({
+        ...DEFAULT_PROFILE,
+        ...savedProfile,
+        englishName:
+          savedProfile.englishName ||
+          (savedProfile.name === "सोमनाथ बैद्य"
+            ? "Somnath Baidya"
+            : savedProfile.name) ||
+          "Somnath Baidya",
+      });
+    }
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("ladwan:admin-store-updated", loadLocalAdminProducts);
+    };
   }, []);
 
   // Update profile callback
@@ -134,17 +233,20 @@ export function useCustomerStore() {
     setStoredJson(STORAGE_KEYS.LOCATION, newLoc);
   }, []);
 
-  // 1. Subscribe to active mills (Live Firestore or Fallback)
+  // 1. Subscribe to active mills (Live Firestore)
   useEffect(() => {
     if (isFirebaseConfigured) {
       const unsub = listenActiveMills((liveMills) => {
-        if (liveMills && liveMills.length > 0) {
+        if (Array.isArray(liveMills)) {
           setAllMills(liveMills);
+          if (liveMills.length > 0 && !selectedMillId) {
+            setSelectedMillIdState(liveMills[0].id);
+          }
         }
       });
       return () => unsub();
     }
-  }, []);
+  }, [selectedMillId]);
 
   // 2. Compute nearby mills with distances from customer location
   const millsWithDistance = useMemo(() => {
@@ -184,12 +286,17 @@ export function useCustomerStore() {
 
   // 3. Resolve selected mill
   const selectedMill = useMemo(() => {
-    if (!selectedMillId && nearbyMills.length > 0) {
+    if (nearbyMills.length > 0) {
+      if (selectedMillId) {
+        const found = nearbyMills.find((m) => m.id === selectedMillId);
+        if (found) return found;
+      }
       return nearbyMills[0];
     }
-    const found = millsWithDistance.find((m) => m.id === selectedMillId);
-    if (found) return found;
-    return nearbyMills[0] || millsWithDistance[0];
+    if (millsWithDistance.length > 0) {
+      return millsWithDistance[0];
+    }
+    return null;
   }, [selectedMillId, nearbyMills, millsWithDistance]);
 
   const selectMill = useCallback((millId) => {
@@ -197,21 +304,33 @@ export function useCustomerStore() {
     setStoredJson(STORAGE_KEYS.SELECTED_MILL_ID, millId);
   }, []);
 
-  // 4. Products list (derived from mill inventory or default catalog)
+  // 3b. Subscribe to live mill inventory in Firestore mode
+  useEffect(() => {
+    if (isFirebaseConfigured && selectedMill?.id) {
+      const unsub = listenInventory(selectedMill.id, (liveItems) => {
+        if (Array.isArray(liveItems)) {
+          setAdminProducts(liveItems);
+        }
+      });
+      return () => unsub();
+    }
+  }, [selectedMill?.id]);
+
+  // 4. Products list (derived from mill live inventory)
   const products = useMemo(() => {
-    // If mill has an active inventory array, use it; otherwise provide rich catalog
-    return INITIAL_PRODUCTS.map((p) => {
-      // Calculate dynamic price based on mill's pricing or defaults
+    const catalog =
+      adminProducts && adminProducts.length > 0 ? adminProducts : [];
+    return catalog.map((p) => {
       return {
         ...p,
         millId: selectedMill?.id,
       };
     });
-  }, [selectedMill]);
+  }, [selectedMill, adminProducts]);
 
   // 5. Cart Management
   const addToCart = useCallback(
-    (product, weightKey = "5kg", grindOption = "बारीक (रोटी)") => {
+    (product, weightKey = "5kg", grindOption = "बारीक (रोटी)", explicitPrice = null) => {
       soundManager.playAddCart();
       setCartState((prev) => {
         // Multiplier from weightKey
@@ -227,8 +346,9 @@ export function useCustomerStore() {
             : 5;
 
         const unitPrice =
-          product.prices?.[weightKey] ||
-          (product.prices?.["1kg"] ? product.prices["1kg"] * kg : 45 * kg);
+          explicitPrice != null
+            ? Number(explicitPrice)
+            : calculatePrice(product.prices, weightKey);
 
         const cartItemId = `${product.id}_${weightKey}_${grindOption}`;
 
@@ -326,18 +446,16 @@ export function useCustomerStore() {
     };
   }, [cart]);
 
-  // 6. Live Order Subscription
+  // 6. Live Order, Mill & Products Subscription
   useEffect(() => {
-    if (!activeOrderId) {
-      setActiveOrder(null);
-      return;
-    }
-
     if (isFirebaseConfigured) {
+      if (!activeOrderId) {
+        setActiveOrder(null);
+        return;
+      }
       const unsub = listenOrder(activeOrderId, (orderData) => {
         if (orderData) {
           setActiveOrder((prev) => {
-            // Ding if status changed
             if (prev && prev.orderStatus !== orderData.orderStatus) {
               soundManager.playStatusDing();
             }
@@ -347,11 +465,94 @@ export function useCustomerStore() {
       });
       return () => unsub();
     } else {
-      // Demo mode fallback: read from local order history
-      const local = orderHistory.find((o) => o.id === activeOrderId);
-      if (local) setActiveOrder(local);
+      // Demo mode: sync with shared bridge and localStorage
+      let isMounted = true;
+      const syncWithBridge = async () => {
+        try {
+          const res = await fetch("/api/bridge/orders", { cache: "no-store" });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.success && isMounted) {
+            // 1. Live Mill Sync from Bridge (e.g. status open/closed, name, UPI QR)
+            if (data.mill) {
+              setAllMills((prev) => {
+                const filtered = prev.filter((m) => m.id !== data.mill.id);
+                return [data.mill, ...filtered];
+              });
+            }
+
+            // 2. Live Products Catalog Sync from Bridge (e.g. price updates)
+            if (Array.isArray(data.products) && data.products.length > 0) {
+              setAdminProducts(data.products);
+            }
+
+            // 3. Live Active Order Tracking
+            if (Array.isArray(data.orders)) {
+              if (activeOrderId) {
+                const found = data.orders.find((o) => o.id === activeOrderId);
+                if (found) {
+                  setActiveOrder((prev) => {
+                    const prevStatus = prev?.orderStatus || prev?.status;
+                    const newStatus = found.orderStatus || found.status;
+                    if (prev && prevStatus !== newStatus) {
+                      soundManager.playStatusDing();
+                    }
+                    return found;
+                  });
+
+                  setOrderHistory((prevHistory) => {
+                    const updated = prevHistory.map((h) => (h.id === activeOrderId ? found : h));
+                    if (!prevHistory.some((h) => h.id === activeOrderId)) {
+                      updated.unshift(found);
+                    }
+                    setStoredJson(STORAGE_KEYS.ORDER_HISTORY, updated);
+                    return updated;
+                  });
+                } else {
+                  setActiveOrder(null);
+                  setActiveOrderIdState(null);
+                  setStoredJson(STORAGE_KEYS.ACTIVE_ORDER_ID, null);
+                }
+              }
+            }
+          }
+        } catch {
+          // Fallback to localStorage if bridge route is unreachable
+          try {
+            const rawOrders = localStorage.getItem(STORAGE_KEYS.ORDER_HISTORY);
+            if (rawOrders && isMounted && activeOrderId) {
+              const parsed = JSON.parse(rawOrders);
+              const found = parsed.find((o) => o.id === activeOrderId);
+              if (found) {
+                setActiveOrder((prev) => {
+                  const prevStatus = prev?.orderStatus || prev?.status;
+                  const newStatus = found.orderStatus || found.status;
+                  if (prev && prevStatus !== newStatus) {
+                    soundManager.playStatusDing();
+                  }
+                  return found;
+                });
+              }
+            }
+          } catch {}
+        }
+      };
+
+      syncWithBridge();
+      const interval = setInterval(syncWithBridge, 1200);
+
+      const handleOrderUpdate = () => syncWithBridge();
+      window.addEventListener("ladwan:order-updated", handleOrderUpdate);
+      window.addEventListener("storage", handleOrderUpdate);
+
+      return () => {
+        isMounted = false;
+        clearInterval(interval);
+        window.removeEventListener("ladwan:order-updated", handleOrderUpdate);
+        window.removeEventListener("storage", handleOrderUpdate);
+      };
     }
-  }, [activeOrderId, orderHistory]);
+  }, [activeOrderId]);
 
   // Place Order Action
   const placeOrder = useCallback(
@@ -369,36 +570,62 @@ export function useCustomerStore() {
 
       const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       const orderNumber = `LDW-${Math.floor(1000 + Math.random() * 9000)}`;
+      const tokenNumber = `${Math.floor(10 + Math.random() * 89)}`;
+      const fullAddress = addressDetails.address || location.name;
+      const currentTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const distanceString = selectedMill.distance || (selectedMill.distanceKm ? `${selectedMill.distanceKm} km` : "1.2 km");
+      const distanceKmVal = typeof selectedMill.distanceKm === "number" ? `${selectedMill.distanceKm} km` : (selectedMill.distance || "1.2 km");
 
       const newOrder = {
         id: orderId,
         orderNumber,
+        tokenNumber,
         customerId: "cust_" + (customerPhone ? customerPhone.replace(/\D/g, "") : Date.now()),
         customerName: customerName || "ग्राहक (Customer)",
         customerPhone: customerPhone || "+91 98000 00000",
+        customer: {
+          name: customerName || "ग्राहक (Customer)",
+          englishName: customerName || "Customer",
+          phone: customerPhone || "+91 98000 00000",
+          address: fullAddress,
+          englishAddress: fullAddress,
+          distanceKm: distanceKmVal,
+          instructions: addressDetails.instructions || "",
+        },
         deliveryAddress: {
-          address: addressDetails.address || location.name,
+          address: fullAddress,
+          houseFlat: addressDetails.flatNumber || "",
+          landmark: addressDetails.landmark || "",
           area: addressDetails.area || location.area || "",
           city: addressDetails.city || location.city || "Kolkata",
-          pincode: addressDetails.pincode || location.pincode || "",
+          pincode: addressDetails.pincode || location.pincode || "700150",
           instructions: addressDetails.instructions || "",
           lat: location.lat,
           lng: location.lng,
         },
+        currentTime,
+        distance: distanceString,
+        distanceKm: distanceKmVal,
         millId: selectedMill.id,
         millName: selectedMill.name,
         millEnglishName: selectedMill.englishName,
         millPhone: selectedMill.phone,
+        millUpiQrUrl: selectedMill.upiQrUrl || null,
         items: cart.map((it) => ({
           productId: it.productId,
           name: it.name,
-          englishName: it.englishName,
+          englishName: it.englishName || it.name,
           category: it.category,
+          weight: it.weightKey,
           weightKey: it.weightKey,
           quantity: it.quantity,
+          kgPerUnit: it.kgPerUnit,
           quantityKg: it.totalKg,
+          totalKg: it.totalKg,
           unitPrice: it.unitPrice,
           totalPrice: it.totalPrice,
+          grind: it.grindOption,
+          englishGrind: it.grindOption,
           grindOption: it.grindOption,
           imageUrl: it.imageUrl,
         })),
@@ -408,8 +635,10 @@ export function useCustomerStore() {
         totalKg: cartSummary.totalKg,
         paymentMethod: paymentMethod || "cod",
         paymentStatus:
-          paymentMethod === "upi" ? "payment_verification_pending" : "pending",
+          paymentMethod === "upi" ? "payment_verification_pending" : "cod_pending",
+        isPaid: false,
         orderStatus: "placed",
+        status: "placed",
         transactionRef: transactionRef || "",
         deliveryBoyId: null,
         deliveryBoyName: null,

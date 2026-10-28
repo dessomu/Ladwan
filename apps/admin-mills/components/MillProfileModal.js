@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Store, X, Save, Languages } from "lucide-react";
+import { Store, X, Save, Languages, QrCode, Upload, Trash2, CheckCircle2 } from "lucide-react";
 import { translations } from "../lib/translations";
 
 export default function MillProfileModal({
@@ -28,6 +28,7 @@ export default function MillProfileModal({
     closingTime: mill.closingTime || "08:30 PM",
     millingCapacityPerHour: mill.millingCapacityPerHour || "45 kg/hr",
     deliveryRadiusKm: mill.deliveryRadiusKm || 5,
+    upiQrUrl: mill.upiQrUrl || "",
   });
 
   useEffect(() => {
@@ -43,6 +44,20 @@ export default function MillProfileModal({
     setSelectedLang(newLang);
     if (onSelectLang) {
       onSelectLang(newLang);
+    }
+  };
+
+  const handleQrUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        setFormData((prev) => ({
+          ...prev,
+          upiQrUrl: uploadEvent.target?.result || prev.upiQrUrl,
+        }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -291,6 +306,80 @@ export default function MillProfileModal({
                 }
                 className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-500"
               />
+            </div>
+          </div>
+
+          {/* OFFICIAL PAYMENT QR CODE SECTION */}
+          <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <QrCode className="w-4 h-4" />
+                <span>{activeT.qrCodeSectionTitle}</span>
+              </label>
+              {formData.upiQrUrl && (
+                <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>सक्रिय QR / Active</span>
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-stone-400 leading-relaxed">
+              {activeT.qrCodeSectionDesc}
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-stone-900/80 p-3.5 rounded-xl border border-stone-800/80">
+              {/* QR Image Preview */}
+              <div className="w-32 h-32 rounded-xl bg-white p-2 shrink-0 flex items-center justify-center border border-stone-700 shadow-md">
+                {formData.upiQrUrl ? (
+                  <img
+                    src={formData.upiQrUrl}
+                    alt="Chakki Payment QR"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-center text-stone-400 text-[10px] flex flex-col items-center gap-1">
+                    <QrCode className="w-8 h-8 text-stone-400" />
+                    <span>QR उपलब्ध नहीं</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Upload & Link Controls */}
+              <div className="space-y-2.5 flex-1 w-full min-w-0">
+                <div>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs cursor-pointer active:scale-95 transition-all shadow-sm">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{activeT.uploadQrPhotoBtn}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleQrUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="pt-0.5">
+                  <input
+                    type="url"
+                    value={formData.upiQrUrl || ""}
+                    onChange={(e) => setFormData({ ...formData, upiQrUrl: e.target.value })}
+                    placeholder={activeT.qrUrlPlaceholder}
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {formData.upiQrUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, upiQrUrl: "" })}
+                    className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>{activeT.removeQrBtn}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

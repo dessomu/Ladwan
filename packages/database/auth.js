@@ -1,4 +1,4 @@
-// @ladwan/firebase - Unified Auth Layer for All Ladwan Apps
+// @ladwan/database - Unified Auth Layer for All Ladwan Apps
 // Supports: Firebase Email/Password Auth, Phone OTP Auth (future), and Demo Session.
 // "use client" is NOT added here — apps add it in their wrappers.
 
@@ -18,30 +18,18 @@ import { INITIAL_PRODUCTS } from "./seed.js";
 export const AUTH_STORAGE_KEY = "ladwan_auth_session_v1";
 export const AUTH_EVENT = "ladwan:auth-changed";
 
-// ── Preset demo accounts (instant test without Firebase project) ──────────────
+// ── Real / Primary Mill Owner Account in Firestore ───────────────────────────
 export const DEMO_USERS = {
   mill_owner_1: {
-    uid: DEMO_USER_IDS.SHREE_RAM_OWNER,
-    email: "shreeram@ladwan.in",
-    displayName: "रामअवतार शर्मा",
-    englishDisplayName: "Ramavtar Sharma",
-    phoneNumber: "+91 98123 45678",
+    uid: "tlP6RYfzBsfjaIaVoTLI9ZOdmsa2",
+    email: "somnathbaidya82@gmail.com",
+    displayName: "Hemu",
+    englishDisplayName: "Hemu",
+    phoneNumber: "+91 89181 19210",
     role: ROLES.MILL_OWNER,
-    millId: DEMO_MILL_IDS.SHREE_RAM,
-    millName: "श्री राम शुद्ध आटा चक्की",
-    millEnglishName: "Shree Ram Shuddh Atta Chakki",
-    status: "active",
-  },
-  mill_owner_2: {
-    uid: DEMO_USER_IDS.KRISHNA_OWNER,
-    email: "krishna@ladwan.in",
-    displayName: "सुरेश चंद",
-    englishDisplayName: "Suresh Chand",
-    phoneNumber: "+91 98765 12340",
-    role: ROLES.MILL_OWNER,
-    millId: DEMO_MILL_IDS.KRISHNA,
-    millName: "कृष्णा देशी आटा चक्की",
-    millEnglishName: "Krishna Desi Atta Chakki",
+    millId: "mill_mv99nb48",
+    millName: "लाडवां शुद्ध आटा चक्की",
+    millEnglishName: "Ladwan Fresh Atta Chakki",
     status: "active",
   },
 };
@@ -99,8 +87,9 @@ export function subscribeToAuthState(onUser) {
   }
 
   // Demo mode: read current session and listen for changes
-  onUser(getDemoSession());
-  const handler = (e) => onUser(e.detail);
+  const session = getDemoSession() || DEMO_USERS.mill_owner_1;
+  onUser(session);
+  const handler = (e) => onUser(e.detail || DEMO_USERS.mill_owner_1);
   window.addEventListener(AUTH_EVENT, handler);
   return () => window.removeEventListener(AUTH_EVENT, handler);
 }
@@ -205,12 +194,14 @@ export async function registerMillOwner(data) {
     name: millName || "ताजा आटा चक्की",
     englishName: millEnglishName || millName || "Fresh Atta Chakki",
     address: address || "मेन मार्केट",
-    area: area || city || "City Center",
-    city: city || "Gurugram",
+    area: area || city || "Station Road",
+    city: city || "Kolkata",
     phone: phone || "+91 98000 00000",
     ownerName,
     isOpen: true,
     acceptingOrders: true,
+    location: initialMillData.location || { lat: 22.4385, lng: 88.4022 },
+    deliveryRadiusKm: initialMillData.deliveryRadiusKm || 5,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

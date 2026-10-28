@@ -193,11 +193,13 @@ export default function MasterCatalogModal({
           const prices = isService
             ? {
                 "1kg": price1kg,
+                "2kg": price1kg * 2,
                 "5kg": price1kg * 5,
                 "10kg": price1kg * 10,
               }
             : {
                 "1kg": price1kg,
+                "2kg": Math.round(price1kg * 2 * 0.99),
                 "5kg": Math.round(price1kg * 5 * 0.98), // subtle standard 5kg bundle perk
                 "10kg": Math.round(price1kg * 10 * 0.96), // subtle 10kg sack bundle perk
               };

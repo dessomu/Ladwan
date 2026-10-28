@@ -34,21 +34,43 @@ export default function LiveOrdersView({
 
   const filteredOrders = orders.filter((order) => {
     if (statusFilter === "active") {
-      return ["pending", "grinding", "packed"].includes(order.status);
+      return ["pending", "placed", "accepted", "grinding", "in_milling", "packed"].includes(order.status);
+    }
+    if (statusFilter === "pending") {
+      return ["pending", "placed"].includes(order.status);
+    }
+    if (statusFilter === "out_for_delivery") {
+      return order.status === "out_for_delivery";
     }
     if (statusFilter === "all") return true;
     return order.status === statusFilter;
   });
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (order) => {
+    const status = order.status;
     switch (status) {
+      case "placed":
       case "pending":
+        if (order.paymentMethod === "upi" && order.paymentStatus === "payment_verification_pending") {
+          return {
+            label: lang === "en" ? "🔔 UPI Verification Needed" : "🔔 UPI पेमेंट सत्यापन आवश्यक",
+            bg: "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse",
+            icon: Bell,
+          };
+        }
         return {
           label: t.badgeNew,
           bg: "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse",
           icon: Bell,
         };
+      case "accepted":
+        return {
+          label: lang === "en" ? "✓ Accepted (Ready to Grind)" : "✓ ऑर्डर स्वीकृत (पिसाई हेतु तैयार)",
+          bg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+          icon: CheckCircle2,
+        };
       case "grinding":
+      case "in_milling":
         return {
           label: t.badgeGrinding,
           bg: "bg-blue-500/20 text-blue-300 border-blue-500/40",
@@ -83,11 +105,38 @@ export default function LiveOrdersView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-stone-900/80 p-3.5 rounded-2xl border border-stone-800">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {[
-            { id: "active", label: t.filterActive, count: orders.filter((o) => ["pending", "grinding", "packed"].includes(o.status)).length },
-            { id: "pending", label: t.filterNew, count: orders.filter((o) => o.status === "pending").length },
-            { id: "grinding", label: t.filterGrinding, count: orders.filter((o) => o.status === "grinding").length },
-            { id: "packed", label: t.filterPacked, count: orders.filter((o) => o.status === "packed").length },
-            { id: "delivered", label: t.filterDelivered, count: orders.filter((o) => o.status === "delivered").length },
+            {
+              id: "active",
+              label: t.filterActive,
+              count: orders.filter((o) =>
+                ["pending", "placed", "accepted", "grinding", "in_milling", "packed"].includes(o.status)
+              ).length,
+            },
+            {
+              id: "pending",
+              label: t.filterNew,
+              count: orders.filter((o) => ["pending", "placed"].includes(o.status)).length,
+            },
+            {
+              id: "grinding",
+              label: t.filterGrinding,
+              count: orders.filter((o) => ["grinding", "in_milling"].includes(o.status)).length,
+            },
+            {
+              id: "packed",
+              label: t.filterPacked,
+              count: orders.filter((o) => o.status === "packed").length,
+            },
+            {
+              id: "out_for_delivery",
+              label: lang === "en" ? "🚴 Dispatched" : "🚴 डिलीवरी में",
+              count: orders.filter((o) => o.status === "out_for_delivery").length,
+            },
+            {
+              id: "delivered",
+              label: t.filterDelivered,
+              count: orders.filter((o) => o.status === "delivered").length,
+            },
             { id: "all", label: t.filterAll, count: orders.length },
           ].map((tab) => (
             <button
@@ -127,14 +176,14 @@ export default function LiveOrdersView({
       {/* Orders List */}
       <div className="space-y-3.5">
         {filteredOrders.map((order) => {
-          const badge = getStatusBadge(order.status);
+          const badge = getStatusBadge(order);
           const BadgeIcon = badge.icon;
 
           return (
             <div
               key={order.id}
               className={`bg-stone-900/90 rounded-2xl border transition-all overflow-hidden ${
-                order.status === "pending"
+                order.status === "pending" || order.status === "placed"
                   ? "border-amber-500/60 shadow-lg shadow-amber-950/40 ring-1 ring-amber-500/30"
                   : "border-stone-800 hover:border-stone-700 shadow-sm"
               }`}
@@ -236,21 +285,99 @@ export default function LiveOrdersView({
                   </div>
                 </div>
 
+                {/* Assigned Delivery Partner Info (Real-time synced from Delivery App) */}
+                {(order.deliveryBoyName || order.deliveryPartner?.name) && (
+                  <div className="flex items-center justify-between gap-3 bg-sky-950/40 border border-sky-500/30 p-2.5 rounded-xl text-xs text-sky-200">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-300 flex items-center justify-center shrink-0">
+                        <Bike className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="truncate">
+                        <span className="text-[10px] text-sky-400 block font-semibold leading-tight">
+                          {lang === "en" ? "Assigned Delivery Partner" : "असाइन किया गया डिलीवरी बॉय"}
+                        </span>
+                        <span className="font-bold text-white text-xs">
+                          {order.deliveryBoyName || order.deliveryPartner?.name}
+                        </span>
+                      </div>
+                    </div>
+                    {(order.deliveryBoyPhone || order.deliveryPartner?.phone) && (
+                      <a
+                        href={`tel:${order.deliveryBoyPhone || order.deliveryPartner?.phone}`}
+                        className="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-mono text-[11px] font-semibold flex items-center gap-1 shrink-0 transition-colors"
+                      >
+                        <Phone className="w-3 h-3" />
+                        <span>{order.deliveryBoyPhone || order.deliveryPartner?.phone}</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* UPI Verification Alert & Customer UTR Box */}
+                {order.paymentMethod === "upi" && order.paymentStatus === "payment_verification_pending" && (
+                  <div className="bg-gradient-to-r from-amber-950/70 via-stone-900 to-amber-950/40 border border-amber-500/50 rounded-2xl p-3.5 space-y-2.5 shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                          <Bell className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{t.upiVerificationNotice || "ऑनलाइन UPI भुगतान सत्यापन प्रतीक्षित"}</span>
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        VERIFY UTR
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-stone-950/90 p-2.5 rounded-xl border border-stone-800">
+                      <span className="text-xs text-stone-400">
+                        {t.utrLabel || "ग्राहक द्वारा दर्ज UTR / Ref ID:"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-amber-200 tracking-wider text-sm bg-stone-900 px-2 py-0.5 rounded border border-amber-500/30 select-all">
+                          {order.transactionRef || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-stone-400 leading-relaxed">
+                      {lang === "en"
+                        ? "Check your Google Pay / PhonePe / Soundbox for this UTR. Once payment is received, click 'Verify Payment & Accept' below to start fresh grinding."
+                        : "कृपया अपनी चक्की के Google Pay, PhonePe या साउंडबॉक्स में इस 12-अंकों के UTR को मिलाएं। पेमेंट मिलने पर नीचे 'UPI भुगतान सत्यापित करें व स्वीकारें' बटन दबाएं।"}
+                    </p>
+                  </div>
+                )}
+
                 {/* Payment & Total Amount Bar */}
                 <div className="flex items-center justify-between pt-2 border-t border-stone-800/80 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="text-stone-400">{t.paymentLabel}</span>
-                    <span
-                      className={`font-semibold px-2 py-0.5 rounded-md text-[11px] ${
-                        order.isPaid
-                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                          : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                      }`}
-                    >
-                      {order.isPaid
-                        ? t.upiPaidLabel || "Online UPI (Paid)"
-                        : t.codLabel || "Cash on Delivery"}
-                    </span>
+                    {order.paymentMethod === "upi" ? (
+                      <span
+                        className={`font-semibold px-2 py-0.5 rounded-md text-[11px] flex items-center gap-1.5 ${
+                          order.paymentStatus === "paid" || order.isPaid
+                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                            : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            order.paymentStatus === "paid" || order.isPaid
+                              ? "bg-emerald-400"
+                              : "bg-amber-400 animate-pulse"
+                          }`}
+                        ></span>
+                        <span>
+                          {order.paymentStatus === "paid" || order.isPaid
+                            ? t.upiPaidLabel || "ऑनलाइन UPI (सत्यापित व प्राप्त)"
+                            : "ऑनलाइन UPI (सत्यापन प्रतीक्षित)"}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="font-semibold px-2 py-0.5 rounded-md text-[11px] bg-stone-800 text-stone-300 border border-stone-700">
+                        {t.codLabel || "नकद (Cash on Delivery)"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-baseline gap-1">
@@ -262,8 +389,8 @@ export default function LiveOrdersView({
                 </div>
 
                 {/* WORKFLOW ACTION BUTTONS */}
-                <div className="pt-2 flex items-center justify-end gap-2">
-                  {order.status === "pending" && (
+                <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
+                  {(order.status === "pending" || order.status === "placed") && (
                     <>
                       <button
                         type="button"
@@ -272,18 +399,52 @@ export default function LiveOrdersView({
                       >
                         {t.btnDecline}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => onUpdateStatus(order.id, "grinding")}
-                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-900/30 active:scale-95 transition-all"
-                      >
-                        <span>{t.btnAcceptGrind}</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
+
+                      {order.paymentMethod === "upi" && order.paymentStatus === "payment_verification_pending" ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onUpdateStatus(order.id, "accepted", {
+                              paymentStatus: "paid",
+                              isPaid: true,
+                              paymentVerifiedAt: new Date().toISOString(),
+                            })
+                          }
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-95 transition-all"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{t.verifyPaymentBtn || "✓ UPI भुगतान सत्यापित करें व स्वीकारें"}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onUpdateStatus(order.id, "accepted", {
+                              paymentStatus: order.paymentStatus || "cod_pending",
+                            })
+                          }
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-900/30 active:scale-95 transition-all"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{t.acceptCodBtn || "✓ आर्डर स्वीकार करें (Accept Order)"}</span>
+                        </button>
+                      )}
                     </>
                   )}
 
-                  {order.status === "grinding" && (
+                  {order.status === "accepted" && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateStatus(order.id, "grinding")}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-900/30 active:scale-95 transition-all"
+                    >
+                      <Flame className="w-4 h-4" />
+                      <span>{t.startGrindBtn || "⚙️ ठंडी पिसाई शुरू करें (Start Grinding)"}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {(order.status === "grinding" || order.status === "in_milling") && (
                     <button
                       type="button"
                       onClick={() => onUpdateStatus(order.id, "packed")}
@@ -297,7 +458,13 @@ export default function LiveOrdersView({
                   {order.status === "packed" && (
                     <button
                       type="button"
-                      onClick={() => onUpdateStatus(order.id, "out_for_delivery")}
+                      onClick={() =>
+                        onUpdateStatus(order.id, "out_for_delivery", {
+                          dispatchedAt: new Date().toISOString(),
+                          // deliveryBoyId remains null until a delivery agent accepts
+                          // The delivery-boy app listens to status == "out_for_delivery"
+                        })
+                      }
                       className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-900/30 active:scale-95 transition-all"
                     >
                       <Bike className="w-4 h-4" />
@@ -308,7 +475,13 @@ export default function LiveOrdersView({
                   {order.status === "out_for_delivery" && (
                     <button
                       type="button"
-                      onClick={() => onUpdateStatus(order.id, "delivered")}
+                      onClick={() =>
+                        onUpdateStatus(order.id, "delivered", {
+                          paymentStatus: "paid",
+                          isPaid: true,
+                          deliveredAt: new Date().toISOString(),
+                        })
+                      }
                       className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 active:scale-95 transition-all"
                     >
                       <CheckCircle2 className="w-4 h-4" />
